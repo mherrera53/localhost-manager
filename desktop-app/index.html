@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="app.title">Localhost Manager</title>
+    <!-- Tabler Core -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/src/styles.css" />
+    <!-- Bootstrap JS - Load before main.ts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <div class="page">
+      <!-- Top Bar -->
+      <header class="navbar navbar-expand-md navbar-light d-print-none border-bottom">
+        <div class="container-fluid">
+          <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+            <i class="ti ti-server me-2"></i> <span data-i18n="app.title">Localhost Manager</span>
+          </h1>
+          <div class="navbar-nav flex-row order-md-last">
+            <!-- Service Status LEDs -->
+            <div class="nav-item d-none d-md-flex me-3">
+              <div class="service-status" id="serviceStatus">
+                <div class="service-item">
+                  <div class="service-led" id="led-apache"></div>
+                  Apache
+                </div>
+                <div class="service-item">
+                  <div class="service-led" id="led-mysql"></div>
+                  MySQL
+                </div>
+                <div class="service-item">
+                  <div class="service-led" id="led-php"></div>
+                  PHP
+                </div>
+              </div>
+            </div>
+            <!-- Quick Actions -->
+            <div class="nav-item">
+              <button class="btn btn-sm btn-icon" id="toggleServersBtn" data-i18n-title="header.toggleServices" title="Toggle Services">
+                <i class="ti ti-power"></i>
+              </button>
+            </div>
+            <!-- Language Selector -->
+            <div class="nav-item ms-2">
+              <select class="form-select form-select-sm" id="languageSelector" style="width: 60px;">
+                <option value="en" selected>EN</option>
+                <option value="es">ES</option>
+                <option value="fr">FR</option>
+                <option value="de">DE</option>
+                <option value="pt">PT</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-body">
+        <!-- Sidebar -->
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <div class="input-icon w-100">
+              <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+              <input type="text" class="form-control form-control-sm" data-i18n="sidebar.searchHosts" placeholder="Search hosts..." id="hostSearch">
+            </div>
+            <button class="btn btn-sm btn-icon btn-ghost-secondary" id="btn-add-host" data-i18n-title="sidebar.addHost" title="Add Host">
+              <i class="ti ti-plus"></i>
+            </button>
+            <button class="btn btn-sm btn-icon btn-ghost-secondary" id="btn-add-group" data-i18n-title="sidebar.addGroup" title="Add Group">
+              <i class="ti ti-folder-plus"></i>
+            </button>
+          </div>
+
+          <div class="sidebar-content">
+            <div id="group-list">
+              <!-- Groups and hosts will be rendered here -->
+            </div>
+          </div>
+
+          <div class="sidebar-footer">
+            <!-- Stack Selector -->
+            <div class="mb-3">
+              <label class="form-label" style="font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; margin-bottom: 0.5rem;" data-i18n="sidebar.serverStack">Server Stack</label>
+              <select class="form-select form-select-sm" id="stackSelector">
+                <option value="native" selected data-i18n-option="stack.native">Native (Homebrew)</option>
+                <option value="mamp" data-i18n-option="stack.mamp">MAMP / MAMP PRO</option>
+                <option value="xampp" data-i18n-option="stack.xampp">XAMPP</option>
+                <option value="wamp" data-i18n-option="stack.wamp">WAMP / WampServer</option>
+                <option value="laragon" data-i18n-option="stack.laragon">Laragon</option>
+                <option value="custom" data-i18n-option="stack.custom">Custom Path</option>
+              </select>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="d-flex justify-content-between align-items-center">
+              <button class="btn btn-sm btn-icon btn-ghost-secondary" id="btn-web-manager" data-i18n-title="sidebar.webManager" title="Open Web Manager">
+                <i class="ti ti-world"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-secondary" id="btn-vscode" data-i18n-title="sidebar.vscode" title="Open in VSCode">
+                <i class="ti ti-code"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-secondary" id="btn-backup" data-i18n-title="sidebar.backup" title="Backup Manager">
+                <i class="ti ti-database-export"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-primary" id="btn-generate-configs" data-i18n-title="sidebar.generateConfigs" title="Generate & Apply Configs">
+                <i class="ti ti-settings"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+          <div class="main-header">
+            <h2 class="page-title" id="selectedHostTitle" data-i18n="main.selectHost">Select a virtual host</h2>
+            <div class="btn-list" id="hostActions" style="display:none;">
+              <button class="btn btn-outline-secondary" id="btn-open-host">
+                <i class="ti ti-external-link me-2"></i> <span data-i18n="main.open">Open</span>
+              </button>
+              <button class="btn btn-outline-primary" id="btn-rename-domain">
+                <i class="ti ti-edit me-2"></i> <span data-i18n="main.rename">Rename</span>
+              </button>
+              <button class="btn btn-outline-danger" id="btn-delete-host">
+                <i class="ti ti-trash me-2"></i> <span data-i18n="main.delete">Delete</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="main-body">
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center text-muted mt-5">
+              <div class="empty-img mb-4">
+                <i class="ti ti-server" style="font-size: 64px; color: #e5e7eb;"></i>
+              </div>
+              <h3 class="mb-2" style="color: #374151; font-weight: 600;" data-i18n="main.selectHost">Select a virtual host</h3>
+              <p class="text-secondary mb-4" data-i18n="main.selectHostDesc">Choose a host from the sidebar to view details</p>
+            </div>
+
+            <!-- Host Details (hidden by default) -->
+            <div id="hostDetails" class="d-none">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title" data-i18n="details.hostInfo">Host Information</h3>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label" data-i18n="details.domain">Domain</label>
+                    <div class="form-control-plaintext fw-bold" id="detail-domain"></div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" data-i18n="details.docroot">Document Root</label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="detail-docroot" placeholder="/path/to/docroot">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-detail-docroot">
+                        <i class="ti ti-folder"></i>
+                      </button>
+                    </div>
+                    <small class="form-hint text-muted">Changes auto-save. Remember to generate configs after.</small>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" data-i18n="details.group">Group</label>
+                    <select class="form-select" id="detail-group">
+                      <option value="Uncategorized">Uncategorized</option>
+                    </select>
+                    <small class="form-hint text-muted">Changes auto-save. Remember to generate configs after.</small>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" data-i18n="details.status">Status</label>
+                    <div class="d-flex align-items-center gap-3">
+                      <label class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="detail-active-toggle">
+                        <span class="form-check-label">
+                          <span class="badge" id="detail-status"></span>
+                        </span>
+                      </label>
+                      <span class="badge bg-success" id="detail-ssl" style="display:none;">
+                        <i class="ti ti-lock me-1"></i><span data-i18n="details.sslEnabled">SSL</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mb-0">
+                    <label class="form-label" data-i18n="details.aliases">Aliases</label>
+                    <div id="detail-aliases" class="mb-2"></div>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-add-alias">
+                      <i class="ti ti-plus me-1"></i><span data-i18n="details.addAlias">Add Alias</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Server Versions Manager -->
+              <div class="card mt-3">
+                <div class="card-header">
+                  <h3 class="card-title" data-i18n="versions.title">Server Software Versions</h3>
+                </div>
+                <div class="card-body">
+                  <!-- PHP Version -->
+                  <div class="mb-4">
+                    <label class="form-label">
+                      <i class="ti ti-brand-php me-1"></i>
+                      <span data-i18n="versions.php">PHP Version</span>
+                    </label>
+                    <div class="row g-2">
+                      <div class="col-md-8">
+                        <select class="form-select" id="php-version-selector">
+                          <option value="" data-i18n-option="versions.detecting">Detecting...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" id="btn-install-php">
+                          <i class="ti ti-download me-1"></i><span data-i18n="versions.installMore">Install More</span>
+                        </button>
+                      </div>
+                    </div>
+                    <small class="text-muted d-block mt-1" id="php-current-version"><span data-i18n="versions.current">Current</span>: <span data-i18n="versions.detecting">Detecting...</span></small>
+                  </div>
+
+                  <!-- Apache Version -->
+                  <div class="mb-4">
+                    <label class="form-label">
+                      <i class="ti ti-server me-1"></i>
+                      <span data-i18n="versions.apache">Apache Version</span>
+                    </label>
+                    <div class="row g-2">
+                      <div class="col-md-8">
+                        <select class="form-select" id="apache-version-selector">
+                          <option value="" data-i18n-option="versions.detecting">Detecting...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" id="btn-install-apache">
+                          <i class="ti ti-download me-1"></i><span data-i18n="versions.installMore">Install More</span>
+                        </button>
+                      </div>
+                    </div>
+                    <small class="text-muted d-block mt-1" id="apache-current-version"><span data-i18n="versions.current">Current</span>: <span data-i18n="versions.detecting">Detecting...</span></small>
+                  </div>
+
+                  <!-- MySQL Version -->
+                  <div class="mb-0">
+                    <label class="form-label">
+                      <i class="ti ti-database me-1"></i>
+                      <span data-i18n="versions.mysql">MySQL Version</span>
+                    </label>
+                    <div class="row g-2">
+                      <div class="col-md-8">
+                        <select class="form-select" id="mysql-version-selector">
+                          <option value="" data-i18n-option="versions.detecting">Detecting...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <button class="btn btn-outline-primary w-100" id="btn-install-mysql">
+                          <i class="ti ti-download me-1"></i><span data-i18n="versions.installMore">Install More</span>
+                        </button>
+                      </div>
+                    </div>
+                    <small class="text-muted d-block mt-1" id="mysql-current-version"><span data-i18n="versions.current">Current</span>: <span data-i18n="versions.detecting">Detecting...</span></small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Creating/Editing Hosts -->
+    <div class="modal modal-blur fade" id="host-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="host-modal-title" data-i18n="modal.addHost">Add Virtual Host</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-12">
+                <label class="form-label required" data-i18n="modal.domain">Domain</label>
+                <input type="text" class="form-control" id="modal-domain" data-i18n="modal.domainPlaceholder" placeholder="example.test" required>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-12">
+                <label class="form-label required" data-i18n="modal.docroot">Document Root</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="modal-docroot" data-i18n="modal.docrootPlaceholder" placeholder="/Users/mario/Sites/localhost/myproject" required>
+                  <button class="btn" type="button" id="btn-browse-docroot">
+                    <i class="ti ti-folder"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label" data-i18n="modal.group">Group</label>
+                <input type="text" class="form-control" id="modal-group" data-i18n="modal.groupPlaceholder" placeholder="Uncategorized">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" data-i18n="modal.type">Type</label>
+                <select class="form-select" id="modal-type">
+                  <option value="static" data-i18n-option="type.static">Static</option>
+                  <option value="php" data-i18n-option="type.php">PHP</option>
+                  <option value="vue" data-i18n-option="type.vue">Vue</option>
+                  <option value="react" data-i18n-option="type.react">React</option>
+                </select>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="modal-active" checked>
+                  <span class="form-check-label" data-i18n="modal.active">Active</span>
+                </label>
+              </div>
+              <div class="col-md-6">
+                <label class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="modal-ssl" checked>
+                  <span class="form-check-label" data-i18n="modal.ssl">SSL Enabled</span>
+                </label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12">
+                <label class="form-label" data-i18n="modal.aliases">Aliases</label>
+                <textarea class="form-control" id="modal-aliases" rows="3" data-i18n="modal.aliasesPlaceholder" placeholder="www.example.test&#10;alias.example.test"></textarea>
+                <small class="form-hint" data-i18n="modal.aliasesHint">One alias per line</small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btn-save-host" data-i18n="modal.save">Save Host</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal modal-blur fade" id="config-modal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="ti ti-settings me-2"></i>
+              <span data-i18n="config.title">Configuration</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Platform Detection -->
+            <div class="alert alert-info mb-4">
+              <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                  <strong data-i18n="config.platform">Platform:</strong>
+                  <span id="config-platform">macOS</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Server Stack Selection -->
+            <div class="mb-4">
+              <label class="form-label fw-bold" data-i18n="config.serverStack">Server Stack</label>
+              <select class="form-select" id="config-stack-selector">
+                <option value="native" data-i18n-option="stack.native">Native (Homebrew)</option>
+                <option value="mamp" data-i18n-option="stack.mamp">MAMP / MAMP PRO</option>
+                <option value="xampp" data-i18n-option="stack.xampp">XAMPP</option>
+                <option value="wamp" data-i18n-option="stack.wamp">WAMP / WampServer</option>
+                <option value="laragon" data-i18n-option="stack.laragon">Laragon</option>
+                <option value="custom" data-i18n-option="stack.custom">Custom Paths</option>
+              </select>
+              <small class="form-hint" data-i18n="config.stackHint">Choose your development environment stack</small>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Component Paths Configuration -->
+            <h6 class="mb-3" data-i18n="config.componentPaths">Component Paths</h6>
+
+            <!-- PHP Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-brand-php me-1"></i>
+                <span data-i18n="config.phpPath">PHP Binary Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-php-path" placeholder="/opt/homebrew/bin/php">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-php-path">
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Apache Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-server me-1"></i>
+                <span data-i18n="config.apachePath">Apache Binary Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-apache-path" placeholder="/opt/homebrew/bin/httpd">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-apache-path">
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- MySQL Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-database me-1"></i>
+                <span data-i18n="config.mysqlPath">MySQL Binary Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-mysql-path" placeholder="/opt/homebrew/bin/mysql">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-mysql-path">
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Virtual Hosts Config Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-file-text me-1"></i>
+                <span data-i18n="config.vhostPath">Virtual Hosts Config Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-vhost-path" placeholder="/opt/homebrew/etc/httpd/extra/httpd-vhosts.conf">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-vhost-path">
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Hosts File Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-file-text me-1"></i>
+                <span data-i18n="config.hostsPath">System Hosts File Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-hosts-path" placeholder="/etc/hosts">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-hosts-path" disabled>
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+              <small class="form-hint text-muted">Usually /etc/hosts on macOS/Linux or C:\Windows\System32\drivers\etc\hosts on Windows</small>
+            </div>
+
+            <!-- Scripts Path -->
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="ti ti-folder-code me-1"></i>
+                <span data-i18n="config.scriptsPath">Scripts Directory Path</span>
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-scripts-path" placeholder="/Users/mario/localhost-manager/scripts">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-scripts-path">
+                  <i class="ti ti-folder"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Auto-detect Button -->
+            <div class="mb-3">
+              <button class="btn btn-outline-primary w-100" id="btn-auto-detect">
+                <i class="ti ti-wand me-2"></i>
+                <span data-i18n="config.autoDetect">Auto-detect Paths</span>
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btn-save-config" data-i18n="modal.save">Save Configuration</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Group Modal -->
+    <div class="modal fade" id="renameGroupModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Rename Group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="rename-group-input" class="form-label">Group Name</label>
+              <input type="text" class="form-control" id="rename-group-input" placeholder="Enter new group name">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btn-confirm-rename-group">Rename</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Group Modal -->
+    <div class="modal fade" id="addGroupModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add New Group</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="add-group-input" class="form-label">Group Name</label>
+              <input type="text" class="form-control" id="add-group-input" placeholder="Enter group name">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="btn-confirm-add-group">Create Group</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+  </body>
+</html>

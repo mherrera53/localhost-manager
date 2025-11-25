@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./src:/app/src
+      - ./src-tauri:/app/src-tauri
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/src-tauri/target
+    environment:
+      - CARGO_HOME=/usr/local/cargo
+      - RUST_BACKTRACE=1
+
+volumes:
+  cargo-cache:
+  target-cache:

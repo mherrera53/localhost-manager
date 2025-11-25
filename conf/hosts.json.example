@@ -1,0 +1,24 @@
+{
+    "localhost": {
+        "docroot": "/Users/yourusername/Sites/localhost",
+        "aliases": [],
+        "group": "Default",
+        "active": true,
+        "ssl": true,
+        "type": "static"
+    },
+    "myproject.local": {
+        "docroot": "/Users/yourusername/Sites/myproject/public",
+        "aliases": [
+            {
+                "id": "alias_example_1",
+                "value": "www.myproject.local",
+                "active": true
+            }
+        ],
+        "group": "MyProjects",
+        "active": true,
+        "ssl": true,
+        "type": "static"
+    }
+}

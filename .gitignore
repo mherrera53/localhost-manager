@@ -1,0 +1,170 @@
+# Localhost Manager - Git Ignore File
+
+# ============================================
+# Security - Never commit sensitive data
+# ============================================
+
+# SSL Certificates (private keys and certificates)
+certs/*.key
+certs/*.crt
+certs/*.csr
+certs/*.pem
+
+# Backup certificates
+certs/*.bak
+
+# Configuration files with local settings
+conf/hosts.json
+
+# Keychain or credential files
+*.keychain
+credentials.txt
+passwords.txt
+
+# ============================================
+# Backup and Temporary Files
+# ============================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.pathbackup
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+
+# ============================================
+# IDE and Editor Files
+# ============================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PhpStorm / IntelliJ
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+
+# Emacs
+*~
+\#*\#
+
+# Atom
+.atom/
+
+# ============================================
+# OS Generated Files
+# ============================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ============================================
+# Application Specific
+# ============================================
+
+# Apache logs
+*.log
+error_log
+access_log
+
+# PHP
+*.php.bak
+*.php.backup
+
+# Composer dependencies (if added later)
+/vendor/
+composer.lock
+
+# Node modules (if added later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# ============================================
+# Test and Development Files
+# ============================================
+
+# Test files
+test-*.php
+*-test.php
+*-old.php
+index-new.php
+index-mamp-style.php
+
+# Lock files
+/tmp/localhost-manager-config.lock
+/tmp/*.lock
+
+# Generated configuration backups
+/etc/apache2/*.bak
+
+# ============================================
+# Build and Distribution
+# ============================================
+
+# Distribution files
+/dist/
+/build/
+
+# Release archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# ============================================
+# Documentation Build Files
+# ============================================
+
+# Generated docs
+/docs/_build/
+/docs/.doctrees/
+
+# ============================================
+# Keep These Files
+# ============================================
+
+# Keep example configurations
+!conf/hosts.json.example
+
+# Keep default certificate (if needed)
+!certs/default.crt
+!certs/default.key
+
+# Keep README files
+!README*.md
+!*.md
