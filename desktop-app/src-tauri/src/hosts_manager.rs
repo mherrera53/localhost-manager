@@ -1,16 +1,17 @@
-use crate::types::{VirtualHost, VirtualHostAlias, ServicesStatus};
+use crate::types::{ServicesStatus, VirtualHost, VirtualHostAlias};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use anyhow::Result;
 
 fn get_home_dir() -> String {
     if cfg!(target_os = "windows") {
         std::env::var("USERPROFILE").unwrap_or_else(|_| {
             // Fallback: try to construct from HOMEDRIVE + HOMEPATH
             let drive = std::env::var("HOMEDRIVE").unwrap_or_else(|_| String::from("C:"));
-            let path = std::env::var("HOMEPATH").unwrap_or_else(|_| String::from("\\Users\\Default"));
+            let path =
+                std::env::var("HOMEPATH").unwrap_or_else(|_| String::from("\\Users\\Default"));
             format!("{}{}", drive, path)
         })
     } else {
@@ -38,35 +39,42 @@ pub async fn get_virtual_hosts() -> Result<HashMap<String, VirtualHost>, String>
         return Ok(HashMap::new());
     }
 
-    let content = fs::read_to_string(&hosts_file)
-        .map_err(|e| format!("Failed to read hosts file: {}", e))?;
+    let content =
+        fs::read_to_string(&hosts_file).map_err(|e| format!("Failed to read hosts file: {}", e))?;
 
-    let hosts_raw: HashMap<String, serde_json::Value> = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse hosts file: {}", e))?;
+    let hosts_raw: HashMap<String, serde_json::Value> =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse hosts file: {}", e))?;
 
     let mut hosts = HashMap::new();
 
     for (domain, host_data) in hosts_raw {
-        if let Ok(host_obj) = serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(host_data.clone()) {
-            let docroot = host_obj.get("docroot")
+        if let Ok(host_obj) =
+            serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(host_data.clone())
+        {
+            let docroot = host_obj
+                .get("docroot")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
 
-            let group = host_obj.get("group")
+            let group = host_obj
+                .get("group")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Uncategorized")
                 .to_string();
 
-            let active = host_obj.get("active")
+            let active = host_obj
+                .get("active")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true);
 
-            let ssl = host_obj.get("ssl")
+            let ssl = host_obj
+                .get("ssl")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true);
 
-            let host_type = host_obj.get("type")
+            let host_type = host_obj
+                .get("type")
                 .and_then(|v| v.as_str())
                 .unwrap_or("static")
                 .to_string();
@@ -80,15 +88,18 @@ pub async fn get_virtual_hosts() -> Result<HashMap<String, VirtualHost>, String>
                     for alias_val in aliases_arr {
                         if let Some(alias_obj) = alias_val.as_object() {
                             let alias = VirtualHostAlias {
-                                id: alias_obj.get("id")
+                                id: alias_obj
+                                    .get("id")
                                     .and_then(|v| v.as_str())
                                     .unwrap_or("")
                                     .to_string(),
-                                value: alias_obj.get("value")
+                                value: alias_obj
+                                    .get("value")
                                     .and_then(|v| v.as_str())
                                     .unwrap_or("")
                                     .to_string(),
-                                active: alias_obj.get("active")
+                                active: alias_obj
+                                    .get("active")
                                     .and_then(|v| v.as_bool())
                                     .unwrap_or(true),
                             };
@@ -155,13 +166,9 @@ pub async fn get_services_status() -> Result<ServicesStatus, String> {
 
 fn check_process(name: &str) -> bool {
     let output = if name == "php-fpm" {
-        Command::new("pgrep")
-            .args(&["-f", name])
-            .output()
+        Command::new("pgrep").args(&["-f", name]).output()
     } else {
-        Command::new("pgrep")
-            .arg(name)
-            .output()
+        Command::new("pgrep").arg(name).output()
     };
 
     match output {
@@ -361,7 +368,10 @@ pub async fn generate_configs() -> Result<String, String> {
 
         if install_output.status.success() {
             let stdout = String::from_utf8_lossy(&install_output.stdout);
-            Ok(format!("Configuration generated and applied successfully.\n{}", stdout))
+            Ok(format!(
+                "Configuration generated and applied successfully.\n{}",
+                stdout
+            ))
         } else {
             let stderr = String::from_utf8_lossy(&install_output.stderr);
             Err(format!("Install failed: {}", stderr))
@@ -392,7 +402,10 @@ pub async fn generate_configs() -> Result<String, String> {
 
         if install_output.status.success() {
             let stdout = String::from_utf8_lossy(&install_output.stdout);
-            Ok(format!("Configuration generated and applied successfully.\n{}", stdout))
+            Ok(format!(
+                "Configuration generated and applied successfully.\n{}",
+                stdout
+            ))
         } else {
             let stderr = String::from_utf8_lossy(&install_output.stderr);
             Err(format!("Install failed: {}", stderr))
@@ -446,11 +459,14 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
             "apache" => vec!["Apache2.4", "wampapache64", "Apache"],
             "mysql" => vec!["MySQL", "wampmysqld64", "MySQL80"],
             "php" => vec![], // PHP-FPM is not a Windows service typically
-            _ => return Err(format!("Unknown service: {}", service))
+            _ => return Err(format!("Unknown service: {}", service)),
         };
 
         if windows_services.is_empty() {
-            return Ok(format!("Service {} does not run as a Windows service", service));
+            return Ok(format!(
+                "Service {} does not run as a Windows service",
+                service
+            ));
         }
 
         // Try each possible service name
@@ -459,21 +475,17 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
                 "start" => "start",
                 "stop" => "stop",
                 "restart" => "stop", // Will start after
-                _ => return Err(format!("Unknown action: {}", action))
+                _ => return Err(format!("Unknown action: {}", action)),
             };
 
-            let output = Command::new("sc")
-                .args(&[sc_action, win_service])
-                .output();
+            let output = Command::new("sc").args(&[sc_action, win_service]).output();
 
             if let Ok(out) = output {
                 if out.status.success() {
                     // If restart, also start
                     if action == "restart" {
                         std::thread::sleep(std::time::Duration::from_secs(1));
-                        let _ = Command::new("sc")
-                            .args(&["start", win_service])
-                            .output();
+                        let _ = Command::new("sc").args(&["start", win_service]).output();
                     }
                     return Ok(format!("Service {} {}ed successfully", service, action));
                 }
@@ -486,7 +498,7 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
                 "start" => "start",
                 "stop" => "stop",
                 "restart" => "stop",
-                _ => return Err(format!("Unknown action: {}", action))
+                _ => return Err(format!("Unknown action: {}", action)),
             };
 
             let output = Command::new("net")
@@ -497,23 +509,24 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
                 if out.status.success() {
                     if action == "restart" {
                         std::thread::sleep(std::time::Duration::from_secs(1));
-                        let _ = Command::new("net")
-                            .args(&["start", win_service])
-                            .output();
+                        let _ = Command::new("net").args(&["start", win_service]).output();
                     }
                     return Ok(format!("Service {} {}ed successfully", service, action));
                 }
             }
         }
 
-        Err(format!("Could not {} {} - service may not be installed or requires admin rights", action, service))
+        Err(format!(
+            "Could not {} {} - service may not be installed or requires admin rights",
+            action, service
+        ))
     } else {
         // macOS - use brew services
         let brew_service = match service.as_str() {
             "apache" => "httpd",
             "mysql" => "mysql@8.4",
             "php" => "php@8.3",
-            _ => return Err(format!("Unknown service: {}", service))
+            _ => return Err(format!("Unknown service: {}", service)),
         };
 
         let output = Command::new("brew")
@@ -538,11 +551,11 @@ pub async fn delete_host(domain: String) -> Result<(), String> {
         return Err("Hosts file not found".to_string());
     }
 
-    let content = fs::read_to_string(&hosts_file)
-        .map_err(|e| format!("Failed to read hosts file: {}", e))?;
+    let content =
+        fs::read_to_string(&hosts_file).map_err(|e| format!("Failed to read hosts file: {}", e))?;
 
-    let mut hosts: HashMap<String, serde_json::Value> = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse hosts file: {}", e))?;
+    let mut hosts: HashMap<String, serde_json::Value> =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse hosts file: {}", e))?;
 
     if hosts.remove(&domain).is_none() {
         return Err(format!("Host '{}' not found", domain));

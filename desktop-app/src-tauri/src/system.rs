@@ -16,11 +16,13 @@ pub fn get_system_language() -> String {
         {
             if let Ok(lang_list) = String::from_utf8(output.stdout) {
                 // Parse the output which looks like: (\n    en,\n    "en-US"\n)
-                if let Some(first_lang) = lang_list
-                    .lines()
-                    .nth(1)
-                    .and_then(|line| line.trim().trim_matches('"').trim_matches(',').split('-').next())
-                {
+                if let Some(first_lang) = lang_list.lines().nth(1).and_then(|line| {
+                    line.trim()
+                        .trim_matches('"')
+                        .trim_matches(',')
+                        .split('-')
+                        .next()
+                }) {
                     return map_language_code(first_lang);
                 }
             }
@@ -35,7 +37,13 @@ pub fn get_system_language() -> String {
 
     // Fallback to environment variables
     if let Ok(lang) = env::var("LANG") {
-        let lang_code = lang.split('.').next().unwrap_or("en").split('_').next().unwrap_or("en");
+        let lang_code = lang
+            .split('.')
+            .next()
+            .unwrap_or("en")
+            .split('_')
+            .next()
+            .unwrap_or("en");
         return map_language_code(lang_code);
     }
 
@@ -77,7 +85,10 @@ pub async fn execute_with_privileges(command: String, args: Vec<String>) -> Resu
 }
 
 #[cfg(target_os = "macos")]
-async fn execute_with_applescript_sudo(command: String, args: Vec<String>) -> Result<String, String> {
+async fn execute_with_applescript_sudo(
+    command: String,
+    args: Vec<String>,
+) -> Result<String, String> {
     // Build the full command
     let full_command = format!("{} {}", command, args.join(" "));
 

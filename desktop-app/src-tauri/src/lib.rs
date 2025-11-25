@@ -1,11 +1,11 @@
-mod types;
 mod config;
-mod php_manager;
 mod hosts_manager;
+mod php_manager;
 mod system;
+mod types;
 
-use php_manager::*;
 use hosts_manager::*;
+use php_manager::*;
 use system::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

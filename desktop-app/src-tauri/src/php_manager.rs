@@ -1,8 +1,8 @@
-use crate::types::{PhpVersion, PhpConfig, PhpExtension, DownloadProgress};
 use crate::config::AppConfig;
+use crate::types::{DownloadProgress, PhpConfig, PhpExtension, PhpVersion};
 use anyhow::{Context, Result};
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Get list of available PHP versions from Homebrew
 #[tauri::command]
@@ -46,10 +46,7 @@ pub async fn get_installed_php_versions() -> Result<Vec<PhpVersion>, String> {
 
 /// Install a PHP version using Homebrew
 #[tauri::command]
-pub async fn install_php_version(
-    version: String,
-    window: tauri::Window,
-) -> Result<String, String> {
+pub async fn install_php_version(version: String, window: tauri::Window) -> Result<String, String> {
     use std::process::Command;
 
     let formula = if version.starts_with("8.4") {
@@ -101,8 +98,8 @@ pub async fn uninstall_php_version(version: String) -> Result<String, String> {
 /// Get PHP configuration for a specific version
 #[tauri::command]
 pub async fn get_php_config(version: String) -> Result<PhpConfig, String> {
-    let install_path = find_php_install_path(&version)
-        .ok_or_else(|| format!("PHP {} not found", version))?;
+    let install_path =
+        find_php_install_path(&version).ok_or_else(|| format!("PHP {} not found", version))?;
 
     let php_ini_path = find_php_ini_path(&install_path);
     let extensions = get_php_extensions(&version)?;
@@ -124,8 +121,8 @@ pub async fn update_php_ini_setting(
     key: String,
     value: String,
 ) -> Result<(), String> {
-    let install_path = find_php_install_path(&version)
-        .ok_or_else(|| format!("PHP {} not found", version))?;
+    let install_path =
+        find_php_install_path(&version).ok_or_else(|| format!("PHP {} not found", version))?;
 
     let php_ini_path = find_php_ini_path(&install_path);
 
@@ -202,7 +199,10 @@ fn find_php_install_path(version: &str) -> Option<PathBuf> {
     let major_minor = version.split('.').take(2).collect::<Vec<_>>().join(".");
     let paths = vec![
         PathBuf::from(format!("/opt/homebrew/Cellar/php/{}", version)),
-        PathBuf::from(format!("/opt/homebrew/Cellar/php@{}/{}", major_minor, version)),
+        PathBuf::from(format!(
+            "/opt/homebrew/Cellar/php@{}/{}",
+            major_minor, version
+        )),
     ];
 
     paths.into_iter().find(|p| p.exists())

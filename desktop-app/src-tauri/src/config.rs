@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
@@ -37,7 +37,10 @@ fn get_config_dir() -> PathBuf {
 
     #[cfg(target_os = "macos")]
     {
-        get_home_dir().join("Library").join("Application Support").join("localhost-manager")
+        get_home_dir()
+            .join("Library")
+            .join("Application Support")
+            .join("localhost-manager")
     }
 
     #[cfg(target_os = "linux")]
