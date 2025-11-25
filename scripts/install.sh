@@ -13,21 +13,9 @@ echo " Localhost Manager - Instalación"
 echo "======================================"
 echo ""
 
-# Recuperar password de run_sudo desde Keychain
-SERVICE_NAME="localhost-manager-sudo"
-ACCOUNT_NAME="$USER"
-
-SUDO_PASSWORD=$(security find-generic-password -a "$ACCOUNT_NAME" -s "$SERVICE_NAME" -w 2>/dev/null)
-
-if [ -z "$SUDO_PASSWORD" ]; then
-    echo "[!] Password no encontrado en Keychain."
-    echo "Ejecuta primero: bash ~/localhost-manager/scripts/setup-keychain.sh"
-    exit 1
-fi
-
-# Función para ejecutar comando con sudo - MEJORADA
+# Función para ejecutar comando con sudo (usa Touch ID si está configurado)
 run_sudo() {
-    echo "$SUDO_PASSWORD" | sudo -S "$@"
+    sudo "$@"
 }
 
 # Variables
@@ -42,36 +30,24 @@ CONF_DIR="$MANAGER_DIR/conf"
 # Variable para rastrear si hubo cambios
 CONFIG_CHANGED=false
 
-echo "Paso 1: Configurando PHP 8.4 en Apache..."
+echo "Paso 1: Verificando PHP-FPM..."
 echo "-------------------------------------------"
 
-# Agregar PHP 8.4 a la configuración de Apache si no está
-if ! grep -q "LoadModule php_module /opt/homebrew/opt/php@8.4" "$APACHE_CONF"; then
-    echo "Agregando módulo PHP 8.4 a Apache..."
-
-    # Comentar módulos PHP antiguos
-    run_sudo sed -i.bak 's/^LoadModule php/#LoadModule php/g' "$APACHE_CONF"
-
-    # Agregar PHP 8.4
-    echo "$SUDO_PASSWORD" | sudo -S bash -c "cat >> \"$APACHE_CONF\" <<'EOF'
-
-# PHP 8.4 Module
-LoadModule php_module /opt/homebrew/opt/php@8.4/lib/httpd/modules/libphp.so
-
-<FilesMatch \.php$>
-    SetHandler application/x-httpd-php
-</FilesMatch>
-
-<IfModule dir_module>
-    DirectoryIndex index.php index.html
-</IfModule>
-EOF
-"
-
-    echo "[OK] Módulo PHP 8.4 agregado"
-    CONFIG_CHANGED=true
+# Verificar que PHP-FPM esté corriendo
+if pgrep -q "php-fpm"; then
+    echo "[OK] PHP-FPM está corriendo"
 else
-    echo "[OK] PHP 8.4 ya está configurado"
+    echo "[!] PHP-FPM no está corriendo, iniciando..."
+    brew services start php@8.3
+    echo "[OK] PHP-FPM iniciado"
+    CONFIG_CHANGED=true
+fi
+
+# Comentar cualquier módulo PHP antiguo (usamos PHP-FPM)
+if grep -q "^LoadModule php_module" "$APACHE_CONF"; then
+    run_sudo sed -i.bak 's/^LoadModule php_module/#LoadModule php_module/g' "$APACHE_CONF"
+    echo "[OK] Módulo PHP comentado (usando PHP-FPM)"
+    CONFIG_CHANGED=true
 fi
 
 echo ""
@@ -100,22 +76,22 @@ enable_module "rewrite_module" "rewrite_module" "mod_rewrite"
 enable_module "ssl_module" "ssl_module" "mod_ssl"
 enable_module "socache_shmcb_module" "socache_shmcb_module" "mod_socache_shmcb"
 
-# Habilitar vhosts con verificación
-if grep -q "^Include /etc/apache2/extra/httpd-vhosts.conf" "$APACHE_CONF"; then
+# Habilitar vhosts con verificación (check both /etc and /private/etc paths)
+if grep -q "^Include.*/httpd-vhosts.conf" "$APACHE_CONF"; then
     echo "[OK] Virtual Hosts ya están habilitados"
-elif grep -q "^#Include /etc/apache2/extra/httpd-vhosts.conf" "$APACHE_CONF"; then
-    run_sudo sed -i.bak 's|^#Include /etc/apache2/extra/httpd-vhosts.conf|Include /etc/apache2/extra/httpd-vhosts.conf|g' "$APACHE_CONF"
+elif grep -q "^#Include.*/httpd-vhosts.conf" "$APACHE_CONF"; then
+    run_sudo sed -i.bak 's|^#Include \(.*\)/httpd-vhosts.conf|Include \1/httpd-vhosts.conf|g' "$APACHE_CONF"
     echo "[OK] Virtual Hosts habilitados"
     CONFIG_CHANGED=true
 else
     echo "[!] Include de Virtual Hosts no encontrado"
 fi
 
-# Habilitar SSL con verificación
-if grep -q "^Include /etc/apache2/extra/httpd-ssl.conf" "$APACHE_CONF"; then
+# Habilitar SSL con verificación (check both /etc and /private/etc paths)
+if grep -q "^Include.*/httpd-ssl.conf" "$APACHE_CONF"; then
     echo "[OK] SSL ya está habilitado"
-elif grep -q "^#Include /etc/apache2/extra/httpd-ssl.conf" "$APACHE_CONF"; then
-    run_sudo sed -i.bak 's|^#Include /etc/apache2/extra/httpd-ssl.conf|Include /etc/apache2/extra/httpd-ssl.conf|g' "$APACHE_CONF"
+elif grep -q "^#Include.*/httpd-ssl.conf" "$APACHE_CONF"; then
+    run_sudo sed -i.bak 's|^#Include \(.*\)/httpd-ssl.conf|Include \1/httpd-ssl.conf|g' "$APACHE_CONF"
     echo "[OK] SSL habilitado"
     CONFIG_CHANGED=true
 else
@@ -213,15 +189,15 @@ echo ""
 echo "Paso 6: Configurando puerto 443 (HTTPS)..."
 echo "-------------------------------------------"
 
-# Agregar Listen 443 si no existe
-if ! grep -q "^Listen 443" "$APACHE_CONF"; then
+# Verificar si Listen 443 ya está en httpd.conf O en httpd-ssl.conf
+if grep -q "^Listen 443" "$APACHE_CONF" || grep -q "^Listen 443" "$APACHE_SSL_CONF" 2>/dev/null; then
+    echo "[OK] Puerto 443 ya está configurado"
+else
     run_sudo sed -i.bak '/Listen 80/a\
 Listen 443\
 ' "$APACHE_CONF"
     echo "[OK] Puerto 443 agregado"
     CONFIG_CHANGED=true
-else
-    echo "[OK] Puerto 443 ya está configurado"
 fi
 
 echo ""

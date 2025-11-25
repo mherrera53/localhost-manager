@@ -38,7 +38,7 @@ EOF
 
 # Procesar cada host del JSON usando PHP para parsear
 # Usar PHP de Homebrew explícitamente (no el alias de MAMP)
-/opt/homebrew/opt/php@8.4/bin/php -r '
+/opt/homebrew/opt/php@8.3/bin/php -r '
 $hostsFile = "'$HOSTS_JSON'";
 $certDir = "'$CERT_DIR'";
 $hosts = json_decode(file_get_contents($hostsFile), true);

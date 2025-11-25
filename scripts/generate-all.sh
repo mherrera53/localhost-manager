@@ -23,18 +23,9 @@ SCRIPTS_DIR="$HOME/localhost-manager/scripts"
 CONF_DIR="$HOME/localhost-manager/conf"
 HOSTS_FILE="$CONF_DIR/hosts.json"
 
-# Recuperar password de sudo desde Keychain
-SERVICE_NAME="localhost-manager-sudo"
-ACCOUNT_NAME="$USER"
-SUDO_PASSWORD=$(security find-generic-password -a "$ACCOUNT_NAME" -s "$SERVICE_NAME" -w 2>/dev/null)
-
-# Función para ejecutar comando con sudo
+# Función para ejecutar comando con sudo (usa Touch ID)
 run_sudo() {
-    if [ -n "$SUDO_PASSWORD" ]; then
-        echo "$SUDO_PASSWORD" | sudo -S "$@"
-    else
-        sudo "$@"
-    fi
+    sudo "$@"
 }
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

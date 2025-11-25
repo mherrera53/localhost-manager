@@ -29,7 +29,7 @@ echo "##" >> /etc/hosts
 echo "" >> /etc/hosts
 
 # Usar PHP para parsear hosts.json y generar entradas
-php -r '
+/opt/homebrew/opt/php@8.3/bin/php -r '
 $hostsFile = "'$HOSTS_JSON'";
 $hosts = json_decode(file_get_contents($hostsFile), true);
 
