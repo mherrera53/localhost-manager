@@ -1,26 +1,26 @@
 # Localhost Manager - Desktop App
 
-🚀 A modern, cross-platform desktop application for managing local web development environments (Apache, PHP, MySQL) with support for multiple stacks like MAMP, XAMPP, WAMP, and native installations.
+ A modern, cross-platform desktop application for managing local web development environments (Apache, PHP, MySQL) with support for multiple stacks like MAMP, XAMPP, WAMP, and native installations.
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6)
 
-## ✨ Features
+##  Features
 
-- 🖥️ **Cross-Platform**: Works on macOS, Windows, and Linux
-- 📦 **Multi-Stack Support**: Native (Homebrew), MAMP, XAMPP, WAMP, Laragon
-- 🐘 **PHP Version Manager**: Install and switch between multiple PHP versions
-- 🗄️ **MySQL Management**: Version switching and password reset tools
-- 🔒 **SSL Certificate Generator**: Auto-generate self-signed certificates
-- 🌐 **Virtual Hosts Manager**: Create, edit, and organize your local domains
-- 🎨 **Modern UI**: Built with Tabler.io and Bootstrap 5
-- 🌍 **Multilingual**: EN, ES, FR, DE, PT
-- 📂 **Drag & Drop**: Drag folders into the document root field
-- 🔧 **Service Control**: Start, stop, restart Apache/MySQL/PHP
+- ️ **Cross-Platform**: Works on macOS, Windows, and Linux
+-  **Multi-Stack Support**: Native (Homebrew), MAMP, XAMPP, WAMP, Laragon
+-  **PHP Version Manager**: Install and switch between multiple PHP versions
+- ️ **MySQL Management**: Version switching and password reset tools
+-  **SSL Certificate Generator**: Auto-generate self-signed certificates
+-  **Virtual Hosts Manager**: Create, edit, and organize your local domains
+-  **Modern UI**: Built with Tabler.io and Bootstrap 5
+-  **Multilingual**: EN, ES, FR, DE, PT
+-  **Drag & Drop**: Drag folders into the document root field
+-  **Service Control**: Start, stop, restart Apache/MySQL/PHP
 
-## 📋 Prerequisites
+##  Prerequisites
 
 ### macOS
 - **macOS 10.15 (Catalina) or later**
@@ -39,7 +39,7 @@
 - **Ubuntu 20.04+ / Debian 11+ / Fedora 36+**
 - `webkit2gtk` and `libayatana-appindicator` libraries
 
-## 🔧 Installation Steps (Step by Step)
+##  Installation Steps (Step by Step)
 
 ### Step 1: Install Rust
 
@@ -200,7 +200,7 @@ Build outputs will be in:
 - **Linux**: `src-tauri/target/release/bundle/deb/` - `.deb` package
   - Or `appimage/` for AppImage
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 desktop-app/
@@ -228,7 +228,7 @@ desktop-app/
 └── README.md              # This file
 ```
 
-## 🎯 Usage Guide
+##  Usage Guide
 
 ### 1. Select Your Server Stack
 
@@ -243,10 +243,10 @@ Click the **"Server Stack"** dropdown in the sidebar and choose your stack:
 ### 2. Manage Services
 
 Use the control buttons in the sidebar footer:
-- **▶️ Start** - Start Apache
-- **⏸️ Stop** - Stop Apache
-- **🔄 Restart** - Restart Apache
-- **⚡ Power** - Toggle all services (Apache + MySQL + PHP)
+- **️ Start** - Start Apache
+- **️ Stop** - Stop Apache
+- ** Restart** - Restart Apache
+- ** Power** - Toggle all services (Apache + MySQL + PHP)
 
 ### 3. Create Virtual Hosts
 
@@ -260,12 +260,12 @@ Use the control buttons in the sidebar footer:
    - **SSL**: Auto-generate SSL certificate
    - **Aliases**: Additional domains (one per line)
 3. Click **"Save Host"**
-4. Click the **⚙️ Generate & Apply Configs** button
+4. Click the **️ Generate & Apply Configs** button
 
 ### 4. Organize with Groups
 
-- Click **📁+ button** to create a new group
-- Hover over a group name to see the **✏️ edit** button
+- Click **+ button** to create a new group
+- Hover over a group name to see the **✏ edit** button
 - Click edit to rename the group
 - Drag hosts between groups (coming soon)
 
@@ -276,18 +276,18 @@ When a host is selected, scroll down to see:
 - **Apache Version** selector with install button
 - **MySQL Version** selector with install button
 
-## 🌐 Supported Server Stacks
+##  Supported Server Stacks
 
 | Stack | macOS | Windows | Linux | Notes |
 |-------|:-----:|:-------:|:-----:|-------|
-| Native (Homebrew) | ✅ | ❌ | ✅ | Recommended for macOS |
-| MAMP / MAMP PRO | ✅ | ❌ | ❌ | Popular macOS stack |
-| XAMPP | ✅ | ✅ | ✅ | Cross-platform |
-| WAMP | ❌ | ✅ | ❌ | Windows only |
-| Laragon | ❌ | ✅ | ❌ | Modern Windows stack |
-| Custom | ✅ | ✅ | ✅ | Manual paths |
+| Native (Homebrew) |  | No | Yes | Recommended for macOS |
+| MAMP / MAMP PRO |  | No | No | Popular macOS stack |
+| XAMPP |  | Yes | Yes | Cross-platform |
+| WAMP |  | Yes | No | Windows only |
+| Laragon |  | Yes | No | Modern Windows stack |
+| Custom |  | Yes | Yes | Manual paths |
 
-## 🔨 Common Issues & Solutions
+## Common Issues & Solutions
 
 ### macOS: "App is damaged and can't be opened"
 
@@ -352,7 +352,7 @@ sudo dnf install gcc gcc-c++
    netstat -ano | findstr :443
    ```
 
-## 🚀 Tech Stack
+##  Tech Stack
 
 ### Backend (Rust)
 - **Tauri 2.0** - Desktop app framework
@@ -366,7 +366,7 @@ sudo dnf install gcc gcc-c++
 - **Bootstrap 5** - UI components
 - **Tabler.io** - Design system & icons
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Here's how:
 
@@ -393,35 +393,35 @@ Contributions are welcome! Here's how:
 - Follow existing code style
 - Add comments for complex logic
 
-## 📝 License
+##  License
 
 MIT License - see LICENSE file for details.
 
 Feel free to use this project for any purpose!
 
-## 🐛 Bug Reports
+##  Bug Reports
 
 Found a bug? Please [open an issue](https://github.com/yourusername/localhost-manager/issues) with:
 
-- ✅ Your OS and version (e.g., "macOS 14.2 Sonoma")
-- ✅ Stack you're using (MAMP, XAMPP, Native, etc.)
-- ✅ Steps to reproduce the bug
-- ✅ Expected behavior vs actual behavior
-- ✅ Screenshots if applicable
-- ✅ Error messages from console/logs
+-  Your OS and version (e.g., "macOS 14.2 Sonoma")
+-  Stack you're using (MAMP, XAMPP, Native, etc.)
+-  Steps to reproduce the bug
+-  Expected behavior vs actual behavior
+-  Screenshots if applicable
+-  Error messages from console/logs
 
-## 💡 Feature Requests
+##  Feature Requests
 
 Have an idea? Open an issue with the `enhancement` label!
 
-## ⭐ Support
+##  Support
 
 If you find this project useful:
-- Give it a ⭐ on GitHub
+- Give it a  on GitHub
 - Share it with other developers
 - Consider contributing!
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Tauri Documentation](https://tauri.app/)
 - [Rust Book](https://doc.rust-lang.org/book/)
@@ -430,4 +430,4 @@ If you find this project useful:
 
 ---
 
-**Made with ❤️ for the web development community**
+**Made with ️ for the web development community**

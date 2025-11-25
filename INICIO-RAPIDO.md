@@ -1,4 +1,4 @@
-# 🚀 Guía de Inicio Rápido - Localhost Manager
+# Guía de Inicio Rápido - Localhost Manager
 
 ## Pasos para Configurar Todo en 5 Minutos
 
@@ -19,12 +19,12 @@ http://localhost/manager
 ### 3. Generar Certificados SSL
 
 En la interfaz web:
-1. Click en "🔒 Generar Todos los Certificados"
-2. Espera a que se generen los 24 certificados
+1. Click en "Generar Todos los Certificados"
+2. Espera a que se generen los certificados
 
 ### 4. Generar Configuración de Apache
 
-1. Click en "⚙️ Generar Configuración Apache"
+1. Click en "Generar Configuración Apache"
 2. Luego ejecuta en terminal:
 
 ```bash
@@ -33,7 +33,7 @@ sudo bash ~/localhost-manager/scripts/install.sh
 
 ### 5. Actualizar /etc/hosts
 
-1. En la interfaz web, click en "📝 Generar /etc/hosts"
+1. En la interfaz web, click en "Generar /etc/hosts"
 2. Ejecuta el comando que aparece:
 
 ```bash
@@ -46,17 +46,11 @@ sudo bash ~/localhost-manager/scripts/update-hosts.sh
 sudo apachectl restart
 ```
 
-## ✅ ¡Listo!
+## Listo
 
-Ahora puedes acceder a cualquiera de tus 24 dominios con HTTPS:
+Ahora puedes acceder a tus dominios configurados con HTTPS.
 
-- https://isi.hospital
-- https://sendu.io
-- https://app.anysubscriptions.com
-- https://cworkflow.com
-- ... y más!
-
-## 📱 Agregar Nuevos Dominios
+## Agregar Nuevos Dominios
 
 1. Ve a http://localhost/manager
 2. Completa el formulario "Agregar Nuevo Dominio"
@@ -65,7 +59,7 @@ Ahora puedes acceder a cualquiera de tus 24 dominios con HTTPS:
 5. Actualiza /etc/hosts (paso 5)
 6. Reinicia Apache (paso 6)
 
-## 🔧 Comandos Útiles
+## Comandos Útiles
 
 ```bash
 # Ver servicios activos
@@ -81,7 +75,7 @@ tail -f /var/log/apache2/error_log
 sudo apachectl configtest
 ```
 
-## 🆘 Problemas Comunes
+## Problemas Comunes
 
 ### Apache no inicia
 ```bash

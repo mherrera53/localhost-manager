@@ -1,18 +1,17 @@
-# 🚀 Inicio Rápido - Localhost Manager
+# Inicio Rápido - Localhost Manager
 
 Sistema completo para reemplazar MAMP Pro con configuración nativa en macOS.
 
-## ✅ Estado Actual
+## Estado Actual
 
-- ✅ PHP 8.4 instalado
-- ✅ MySQL 8.4 instalado
-- ✅ Apache 2.4 (nativo macOS)
-- ✅ Password sudo en Keychain (seguro)
-- ✅ 24 dominios extraídos de MAMP Pro
-- ✅ Interfaz web de administración
-- ✅ Grupos automáticos por repositorio
+- PHP 8.4 instalado
+- MySQL 8.4 instalado
+- Apache 2.4 (nativo macOS)
+- Password sudo en Keychain (seguro)
+- Interfaz web de administración
+- Grupos automáticos por repositorio
 
-## 📋 Pasos de Configuración
+## Pasos de Configuración
 
 ### 1. Configurar Servicios (2 min)
 
@@ -30,21 +29,18 @@ Abre tu navegador en: **http://localhost/manager**
 
 En la interfaz web, haz click en estos botones en orden:
 
-1. **🔒 Generar Certificados** - Genera certificados SSL para todos los dominios activos
-2. **⚙️ Generar Vhosts** - Crea la configuración de Apache
-3. **📝 Generar Hosts** - Prepara el archivo /etc/hosts
-4. **✅ Aplicar Configuración** - Aplica todo automáticamente (usa Keychain para sudo)
+1. **Generar Certificados** - Genera certificados SSL para todos los dominios activos
+2. **Generar Vhosts** - Crea la configuración de Apache
+3. **Generar Hosts** - Prepara el archivo /etc/hosts
+4. **Aplicar Configuración** - Aplica todo automáticamente (usa Keychain para sudo)
 
-¡Y listo! Todos tus dominios estarán funcionando con HTTPS.
+Y listo! Todos tus dominios estarán funcionando con HTTPS.
 
-## 🎯 Características Principales
+## Características Principales
 
 ### Gestión por Grupos
 
-Los dominios se agrupan automáticamente por repositorio:
-- **isi.hospital** → Todos los dominios en /Sites/localhost/isi.hospital/
-- **anysubscription** → Todos en /Sites/localhost/anysubscription/
-- **elroble-workflow** → Todos en /Sites/localhost/elroble-workflow/
+Los dominios se agrupan automáticamente por repositorio basándose en la estructura de directorios.
 
 ### Activar/Desactivar Dominios
 
@@ -60,50 +56,21 @@ Los dominios se agrupan automáticamente por repositorio:
 
 El password de sudo está almacenado en **macOS Keychain**, no en texto plano.
 
-## 📁 Dominios Configurados
-
-Total: **24 dominios**
-
-### Por Repositorio:
-
-- **jirafazul.com** (1)
-- **sendu.io** (1)
-- **levantemosguate.com** (1)
-- **paravida** (1)
-- **enlineaya.com** (1)
-- **confiansa_comisiones** (1)
-- **isi.hospital** (1)
-- **visanet-onboarding** (1)
-- **anysubscription** (2 dominios)
-- **anysubscription_backend** (1)
-- **demo.abkbusiness.com** (1)
-- **elroble-workflow** (1)
-- **elroble-sso** (1)
-- **elroble-gestor-auto** (1)
-- **app-pagos-elroble** (1)
-- **addiuva_ws** (1)
-- **bac-onboarding** (1)
-- **onboarding-interbanco** (1)
-- **onboarding-backend** (1)
-- **cworkflow.com** (1)
-- **seguros-marketplace** (1)
-- **localhost** (1)
-
-## 🌐 Agregar Nuevo Dominio
+## Agregar Nuevo Dominio
 
 1. En la interfaz, ve al formulario "Agregar Nuevo Dominio"
 2. Completa:
    - **Dominio**: `nuevo.local`
    - **Alias**: `www.nuevo.local` (opcional)
-   - **Document Root**: `/Users/mario/Sites/localhost/nuevo/public`
-   - **Grupo**: `🔍 Auto` (detecta automáticamente del path)
+   - **Document Root**: `/Users/youruser/Sites/localhost/nuevo/public`
+   - **Grupo**: Auto (detecta automáticamente del path)
 3. Click "Agregar Dominio"
-4. Click "🔒" para generar certificado SSL
-5. Click "✅ Aplicar Configuración"
+4. Genera certificado SSL
+5. Click "Aplicar Configuración"
 
-¡El dominio estará listo en segundos!
+El dominio estará listo en segundos.
 
-## 🔧 Comandos Útiles
+## Comandos Útiles
 
 ```bash
 # Ver servicios activos
@@ -122,34 +89,34 @@ sudo apachectl configtest
 security find-generic-password -a $USER -s localhost-manager-sudo -w
 ```
 
-## 💡 Workflow Recomendado
+## Workflow Recomendado
 
 ### Desarrollo en Múltiples Proyectos
 
 1. **Desactiva** todos los grupos que no necesites
 2. **Activa** solo el grupo del proyecto actual
-3. Click **✅ Aplicar Configuración**
+3. Click **Aplicar Configuración**
 
 Esto mejora el rendimiento de Apache y mantiene /etc/hosts limpio.
 
 ### Agregar Proyecto Nuevo
 
-1. Crea el directorio: `/Users/mario/Sites/localhost/mi-proyecto/`
+1. Crea el directorio de tu proyecto
 2. Agrega el dominio en la interfaz
-3. El grupo se detecta automáticamente como "mi-proyecto"
+3. El grupo se detecta automáticamente
 4. Genera certificado y aplica configuración
 
-## 🎉 Ventajas vs MAMP Pro
+## Ventajas vs MAMP Pro
 
-✅ **Gratis** - No necesitas licencia
-✅ **Más rápido** - Apache nativo de macOS
-✅ **Actualizable** - `brew upgrade` para todo
-✅ **Grupos inteligentes** - Por repositorio automáticamente
-✅ **Seguro** - Password en Keychain
-✅ **Flexible** - Activa/desactiva proyectos fácilmente
-✅ **Moderno** - Interfaz web elegante
+- **Gratis** - No necesitas licencia
+- **Más rápido** - Apache nativo de macOS
+- **Actualizable** - `brew upgrade` para todo
+- **Grupos inteligentes** - Por repositorio automáticamente
+- **Seguro** - Password en Keychain
+- **Flexible** - Activa/desactiva proyectos fácilmente
+- **Moderno** - Interfaz web elegante
 
-## 📞 Archivos Importantes
+## Archivos Importantes
 
 ```
 ~/localhost-manager/
@@ -164,13 +131,13 @@ Esto mejora el rendimiento de Apache y mantiene /etc/hosts limpio.
 │   └── configure-services.sh
 └── README.md               # Documentación completa
 
-/Users/mario/Sites/localhost/manager/
+/Users/youruser/Sites/localhost/manager/
 └── index.php               # Interfaz web
 ```
 
 ---
 
-**¿Problemas?** Consulta [README.md](README.md) para documentación completa.
+**Problemas?** Consulta [README.md](README.md) para documentación completa.
 
 **Versión**: 2.0.0 (con Keychain y grupos automáticos)
 **Fecha**: Noviembre 2025

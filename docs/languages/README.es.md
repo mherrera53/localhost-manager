@@ -1,7 +1,5 @@
 # Localhost Manager
 
-**[English](docs/languages/README.en.md) | [Français](docs/languages/README.fr.md) | [Deutsch](docs/languages/README.de.md) | [Architecture Diagrams](docs/diagrams/ARCHITECTURE.md)**
-
 Sistema completo para administrar dominios locales, certificados SSL y configuración de Apache en macOS de forma nativa (sin MAMP Pro).
 
 ## Requisitos Previos

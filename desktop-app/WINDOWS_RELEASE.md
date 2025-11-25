@@ -1,10 +1,10 @@
 # Windows Release Guide - Localhost Manager
 
-## ✅ Configuración Completada
+##  Configuración Completada
 
 El proyecto ya está configurado para compilar instaladores de Windows. A continuación se explica cómo generar los instaladores.
 
-## 🎯 Opciones para Compilar
+##  Opciones para Compilar
 
 ### Opción 1: GitHub Actions (RECOMENDADO - Automático)
 
@@ -49,7 +49,7 @@ Esto automáticamente:
 
 Si tienes acceso a una máquina Windows, sigue la guía completa en `BUILD_WINDOWS.md`.
 
-## 📦 Salidas del Build
+##  Salidas del Build
 
 El proceso genera dos tipos de instaladores:
 
@@ -67,30 +67,30 @@ El proceso genera dos tipos de instaladores:
   - Compatible con Group Policy
   - Ideal para despliegues corporativos
 
-## 🔧 Características Implementadas para Windows
+##  Características Implementadas para Windows
 
-### ✅ Rutas Multi-Plataforma
+###  Rutas Multi-Plataforma
 ```
 Windows: %APPDATA%\localhost-manager\
 macOS:   ~/Library/Application Support/localhost-manager/
 Linux:   ~/.config/localhost-manager/
 ```
 
-### ✅ Soporte para Stacks de Windows
+###  Soporte para Stacks de Windows
 - **XAMPP** - `C:\xampp\`
 - **WAMP** - `C:\wamp64\`
 - **Laragon** - `C:\laragon\`
 
-### ✅ Privilegios de Administrador
+###  Privilegios de Administrador
 - UAC elevation para operaciones que lo requieran
 - Edición del archivo hosts (`C:\Windows\System32\drivers\etc\hosts`)
 - Control de servicios de Windows
 
-### ✅ Scripts PowerShell
+###  Scripts PowerShell
 Creados scripts equivalentes para Windows:
 - `scripts/windows/configure-services.ps1`
 
-## 📋 Archivos de Configuración
+##  Archivos de Configuración
 
 ### Configuración de Tauri
 `src-tauri/tauri.conf.json` - Configurado con:
@@ -106,7 +106,7 @@ Creados scripts equivalentes para Windows:
 - `BUILD_WINDOWS.md` - Guía completa de compilación
 - `WINDOWS_RELEASE.md` - Este archivo
 
-## 🚀 Cómo Distribuir
+##  Cómo Distribuir
 
 ### Distribución Simple
 1. Obtén el archivo `.exe` de GitHub Actions o GitHub Release
@@ -145,7 +145,7 @@ Para distribución profesional, considera firmar el instalador:
 
 3. **Los usuarios NO verán advertencias de Windows Defender**
 
-## 📝 Checklist de Release
+##  Checklist de Release
 
 - [ ] Todos los cambios committed y pushed
 - [ ] Version actualizada en `tauri.conf.json` y `package.json`
@@ -156,7 +156,7 @@ Para distribución profesional, considera firmar el instalador:
 - [ ] Release notes escritas
 - [ ] Instalador publicado en GitHub Releases
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### El workflow falla con error de compilación
 - Revisa los logs en GitHub Actions
@@ -197,6 +197,6 @@ Para distribución profesional, considera firmar el instalador:
 
 ---
 
-**¡El proyecto ya está listo para compilar instaladores de Windows!** 🎉
+**¡El proyecto ya está listo para compilar instaladores de Windows!** 
 
 Solo haz push a GitHub y el workflow creará automáticamente los instaladores.
