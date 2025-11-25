@@ -53,7 +53,7 @@ fn get_config_dir() -> PathBuf {
 
 impl Default for AppConfig {
     fn default() -> Self {
-        let home = get_home_dir();
+        let _home = get_home_dir();
         let config_dir = get_config_dir();
 
         Self {
@@ -77,6 +77,7 @@ impl AppConfig {
         }
     }
 
+    #[allow(dead_code)]
     pub fn save(&self) -> anyhow::Result<()> {
         let config_dir = get_config_dir();
         std::fs::create_dir_all(&config_dir)?;

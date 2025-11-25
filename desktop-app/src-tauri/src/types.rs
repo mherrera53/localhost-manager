@@ -27,6 +27,7 @@ pub struct PhpConfig {
     pub settings: std::collections::HashMap<String, String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectProfile {
     pub id: String,
@@ -37,6 +38,7 @@ pub struct ProjectProfile {
     pub custom_ini_settings: std::collections::HashMap<String, String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadProgress {
     pub downloaded: u64,

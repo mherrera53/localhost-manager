@@ -1,8 +1,7 @@
 use crate::config::AppConfig;
-use crate::types::{DownloadProgress, PhpConfig, PhpExtension, PhpVersion};
-use anyhow::{Context, Result};
+use crate::types::{PhpConfig, PhpExtension, PhpVersion};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Get list of available PHP versions from Homebrew
 #[tauri::command]
@@ -23,7 +22,7 @@ pub async fn get_available_php_versions() -> Result<Vec<PhpVersion>, String> {
 /// Get list of installed PHP versions
 #[tauri::command]
 pub async fn get_installed_php_versions() -> Result<Vec<PhpVersion>, String> {
-    let config = AppConfig::load().map_err(|e| e.to_string())?;
+    let _config = AppConfig::load().map_err(|e| e.to_string())?;
     let mut versions = Vec::new();
 
     // Check Homebrew installations
@@ -46,7 +45,10 @@ pub async fn get_installed_php_versions() -> Result<Vec<PhpVersion>, String> {
 
 /// Install a PHP version using Homebrew
 #[tauri::command]
-pub async fn install_php_version(version: String, window: tauri::Window) -> Result<String, String> {
+pub async fn install_php_version(
+    version: String,
+    _window: tauri::Window,
+) -> Result<String, String> {
     use std::process::Command;
 
     let formula = if version.starts_with("8.4") {
@@ -58,7 +60,7 @@ pub async fn install_php_version(version: String, window: tauri::Window) -> Resu
 
     // Execute brew install with output streaming
     let output = Command::new("brew")
-        .args(&["install", formula])
+        .args(["install", formula])
         .output()
         .map_err(|e| format!("Failed to execute brew: {}", e))?;
 
@@ -83,7 +85,7 @@ pub async fn uninstall_php_version(version: String) -> Result<String, String> {
     };
 
     let output = Command::new("brew")
-        .args(&["uninstall", formula])
+        .args(["uninstall", formula])
         .output()
         .map_err(|e| format!("Failed to execute brew: {}", e))?;
 
@@ -167,7 +169,7 @@ fn create_php_version(version: &str, major: u8, minor: u8, patch: u8) -> PhpVers
     }
 }
 
-fn extract_php_version(name: &str, path: &PathBuf) -> Option<PhpVersion> {
+fn extract_php_version(_name: &str, path: &PathBuf) -> Option<PhpVersion> {
     // Extract version from Homebrew Cellar directory
     if let Ok(entries) = std::fs::read_dir(path) {
         if let Some(first_version) = entries.filter_map(Result::ok).next() {
@@ -208,8 +210,8 @@ fn find_php_install_path(version: &str) -> Option<PathBuf> {
     paths.into_iter().find(|p| p.exists())
 }
 
-fn find_php_ini_path(install_path: &PathBuf) -> PathBuf {
-    let mut ini_path = install_path.clone();
+fn find_php_ini_path(install_path: &Path) -> PathBuf {
+    let mut ini_path = install_path.to_path_buf();
     ini_path.push("etc");
     ini_path.push("php.ini");
 
@@ -220,7 +222,7 @@ fn find_php_ini_path(install_path: &PathBuf) -> PathBuf {
     ini_path
 }
 
-fn get_php_extensions(version: &str) -> Result<Vec<PhpExtension>, String> {
+fn get_php_extensions(_version: &str) -> Result<Vec<PhpExtension>, String> {
     // This would parse php -m output
     Ok(vec![
         PhpExtension {
@@ -241,7 +243,7 @@ fn get_php_extensions(version: &str) -> Result<Vec<PhpExtension>, String> {
     ])
 }
 
-fn read_php_ini_settings(php_ini_path: &PathBuf) -> Result<HashMap<String, String>, String> {
+fn read_php_ini_settings(php_ini_path: &Path) -> Result<HashMap<String, String>, String> {
     if !php_ini_path.exists() {
         return Ok(HashMap::new());
     }

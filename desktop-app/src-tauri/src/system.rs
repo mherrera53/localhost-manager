@@ -11,7 +11,7 @@ pub fn get_system_language() -> String {
     #[cfg(target_os = "macos")]
     {
         if let Ok(output) = std::process::Command::new("defaults")
-            .args(&["read", "-g", "AppleLanguages"])
+            .args(["read", "-g", "AppleLanguages"])
             .output()
         {
             if let Ok(lang_list) = String::from_utf8(output.stdout) {
@@ -99,7 +99,7 @@ async fn execute_with_applescript_sudo(
     );
 
     let output = std::process::Command::new("osascript")
-        .args(&["-e", &script])
+        .args(["-e", &script])
         .output()
         .map_err(|e| format!("Failed to execute: {}", e))?;
 

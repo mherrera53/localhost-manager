@@ -166,7 +166,7 @@ pub async fn get_services_status() -> Result<ServicesStatus, String> {
 
 fn check_process(name: &str) -> bool {
     let output = if name == "php-fpm" {
-        Command::new("pgrep").args(&["-f", name]).output()
+        Command::new("pgrep").args(["-f", name]).output()
     } else {
         Command::new("pgrep").arg(name).output()
     };
@@ -261,7 +261,7 @@ pub async fn get_current_apache_version() -> Result<String, String> {
                     if line.contains("Server version:") || line.contains("Apache/") {
                         if let Some(start) = line.find("Apache/") {
                             let version_str = &line[start + 7..];
-                            if let Some(end) = version_str.find(|c: char| c == ' ' || c == ')') {
+                            if let Some(end) = version_str.find([' ', ')']) {
                                 return Ok(version_str[..end].to_string());
                             }
                         }
@@ -307,7 +307,7 @@ pub async fn get_current_mysql_version() -> Result<String, String> {
                 // Parse "mysql  Ver 8.4.7 for ..." or "mysql.exe  Ver 8.0.31..."
                 if let Some(ver_pos) = version_output.find(" Ver ") {
                     let after_ver = &version_output[ver_pos + 5..];
-                    if let Some(end) = after_ver.find(|c: char| c == ' ' || c == '-') {
+                    if let Some(end) = after_ver.find([' ', '-']) {
                         return Ok(after_ver[..end].to_string());
                     }
                 }
@@ -350,7 +350,7 @@ pub async fn generate_configs() -> Result<String, String> {
         // Step 1: Generate configs
         let generate_script = format!("{}\\generate-all.ps1", scripts_dir);
         let output = Command::new("powershell")
-            .args(&["-ExecutionPolicy", "Bypass", "-File", &generate_script])
+            .args(["-ExecutionPolicy", "Bypass", "-File", &generate_script])
             .output()
             .map_err(|e| format!("Failed to execute generate script: {}", e))?;
 
@@ -362,7 +362,7 @@ pub async fn generate_configs() -> Result<String, String> {
         // Step 2: Apply configs (install.ps1) - requires admin
         let install_script = format!("{}\\install.ps1", scripts_dir);
         let install_output = Command::new("powershell")
-            .args(&["-ExecutionPolicy", "Bypass", "-File", &install_script])
+            .args(["-ExecutionPolicy", "Bypass", "-File", &install_script])
             .output()
             .map_err(|e| format!("Failed to execute install script: {}", e))?;
 
@@ -421,7 +421,7 @@ pub async fn apply_configs() -> Result<String, String> {
         let script_path = format!("{}\\localhost-manager\\scripts\\windows\\install.ps1", home);
 
         let output = Command::new("powershell")
-            .args(&["-ExecutionPolicy", "Bypass", "-File", &script_path])
+            .args(["-ExecutionPolicy", "Bypass", "-File", &script_path])
             .output()
             .map_err(|e| format!("Failed to execute install script: {}", e))?;
 
@@ -478,14 +478,14 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
                 _ => return Err(format!("Unknown action: {}", action)),
             };
 
-            let output = Command::new("sc").args(&[sc_action, win_service]).output();
+            let output = Command::new("sc").args([sc_action, win_service]).output();
 
             if let Ok(out) = output {
                 if out.status.success() {
                     // If restart, also start
                     if action == "restart" {
                         std::thread::sleep(std::time::Duration::from_secs(1));
-                        let _ = Command::new("sc").args(&["start", win_service]).output();
+                        let _ = Command::new("sc").args(["start", win_service]).output();
                     }
                     return Ok(format!("Service {} {}ed successfully", service, action));
                 }
@@ -501,15 +501,13 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
                 _ => return Err(format!("Unknown action: {}", action)),
             };
 
-            let output = Command::new("net")
-                .args(&[net_action, win_service])
-                .output();
+            let output = Command::new("net").args([net_action, win_service]).output();
 
             if let Ok(out) = output {
                 if out.status.success() {
                     if action == "restart" {
                         std::thread::sleep(std::time::Duration::from_secs(1));
-                        let _ = Command::new("net").args(&["start", win_service]).output();
+                        let _ = Command::new("net").args(["start", win_service]).output();
                     }
                     return Ok(format!("Service {} {}ed successfully", service, action));
                 }
@@ -530,7 +528,7 @@ pub async fn control_service(action: String, service: String) -> Result<String, 
         };
 
         let output = Command::new("brew")
-            .args(&["services", &action, brew_service])
+            .args(["services", &action, brew_service])
             .output()
             .map_err(|e| format!("Failed to {} {}: {}", action, service, e))?;
 
