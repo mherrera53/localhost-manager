@@ -42,7 +42,7 @@ graph TB
     HostsJSON --> VHostsConf
     HostsJSON --> HostsTxt
     VHostsConf --> Apache
-    HostsTxt --> EtcHosts[/etc/hosts]
+    HostsTxt --> EtcHosts["etc/hosts file"]
 
     Apache --> PHP_FPM
     Apache --> Certs
@@ -80,9 +80,9 @@ flowchart TD
     WriteConf --> DisplayUI
 
     UserAction -->|Apply Config| ApplyConf[Apply Configuration]
-    ApplyConf --> CopyCerts[Copy certs to /etc/apache2/ssl]
+    ApplyConf --> CopyCerts["Copy certs to etc/apache2/ssl"]
     CopyCerts --> CopyVHosts[Copy vhosts.conf to Apache]
-    CopyVHosts --> UpdateHosts[Update /etc/hosts]
+    CopyVHosts --> UpdateHosts["Update etc-hosts"]
     UpdateHosts --> RestartApache[Restart Apache]
     RestartApache --> Success([Configuration Applied])
 ```
@@ -136,7 +136,7 @@ graph LR
 
     subgraph "System Integration"
         Apache[Apache Control]
-        Hosts[/etc/hosts Management]
+        Hosts["etc-hosts Management"]
         Certs[Certificate Management]
         Services[Service Control]
     end

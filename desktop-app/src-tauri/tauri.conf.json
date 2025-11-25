@@ -84,12 +84,7 @@
         "fragmentPaths": [],
         "enableElevatedUpdateTask": true
       },
-      "nsis": {
-        "languages": ["English", "Spanish", "French", "German", "Portuguese"],
-        "displayLanguageSelector": true,
-        "compression": "lzma",
-        "installMode": "perUser"
-      }
+      "nsis": null
     },
     "linux": {
       "deb": {

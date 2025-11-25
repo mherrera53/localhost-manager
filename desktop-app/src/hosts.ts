@@ -3,7 +3,7 @@
 // ============================================
 
 import { Command, open as openUrl } from "@tauri-apps/plugin-shell";
-import { open as openDialog, ask, message as dialogMessage } from '@tauri-apps/plugin-dialog';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import Sortable from 'sortablejs';
 import { showToast } from './ui';
 import * as api from './api';
@@ -101,7 +101,7 @@ let servicesStatus: ServicesStatus = {
   all_running: false
 };
 let currentHost: VirtualHost | null = null;
-let currentStack: StackConfig = STACK_CONFIGS.native;
+// let currentStack: StackConfig = STACK_CONFIGS.native;
 
 export async function loadVirtualHosts() {
   try {
@@ -996,7 +996,7 @@ export function onStackChanged(stackKey: string) {
     return;
   }
 
-  currentStack = stack;
+  // currentStack = stack;
   showToast(`Switched to ${stack.name}`, 'success');
 
   // TODO: Detect if stack is actually installed
@@ -1076,7 +1076,7 @@ function initializeDragDrop() {
 
   groupItems.forEach((groupElement, index) => {
     console.log(`[DragDrop] Setting up Sortable for group ${index}`);
-    const sortableInstance = new Sortable(groupElement as HTMLElement, {
+    const _sortableInstance = new Sortable(groupElement as HTMLElement, {
       group: 'hosts',
       animation: 150,
       ghostClass: 'sortable-ghost',
@@ -1093,7 +1093,7 @@ function initializeDragDrop() {
       scrollSensitivity: 30,
       scrollSpeed: 10,
       bubbleScroll: true,
-      onStart: (evt: Sortable.SortableEvent) => {
+      onStart: (_evt: Sortable.SortableEvent) => {
         console.log('[DragDrop] Started dragging item');
         console.log('[DragDrop] Item:', evt.item);
       },
