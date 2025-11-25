@@ -2,15 +2,15 @@
 
 Sistema completo para administrar dominios locales, certificados SSL y configuración de Apache en macOS de forma nativa (sin MAMP Pro).
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
-- ✅ macOS (Ventura o superior)
-- ✅ Homebrew instalado
-- ✅ PHP 8.4 (instalado)
-- ✅ MySQL 8.4 (instalado)
-- ✅ Apache 2.4 (nativo de macOS)
+- macOS (Ventura o superior)
+- Homebrew instalado
+- PHP 8.4 (instalado)
+- MySQL 8.4 (instalado)
+- Apache 2.4 (nativo de macOS)
 
-## 🚀 Instalación Rápida
+## Instalación Rápida
 
 ### Paso 1: Configurar servicios
 
@@ -55,7 +55,7 @@ bash ~/localhost-manager/scripts/generate-certificates.sh
    - Generar archivo /etc/hosts
    - Administrar dominios y alias
 
-## 🎯 Uso de la Interfaz Web
+## Uso de la Interfaz Web
 
 ### Dashboard Principal
 
@@ -66,17 +66,17 @@ La interfaz muestra:
 
 ### Generar Certificados SSL
 
-1. Click en "🔒 Generar Todos los Certificados"
-2. O genera certificados individuales con el botón "🔒 Cert" en cada fila
+1. Click en "Generar Todos los Certificados"
+2. O genera certificados individuales con el botón "Cert" en cada fila
 
 ### Generar Configuración de Apache
 
-1. Click en "⚙️ Generar Configuración Apache"
+1. Click en "Generar Configuración Apache"
 2. Esto crea el archivo `~/localhost-manager/conf/vhosts.conf`
 
 ### Actualizar /etc/hosts
 
-1. Click en "📝 Generar /etc/hosts"
+1. Click en "Generar /etc/hosts"
 2. Ejecuta el comando que aparece:
 
 ```bash
@@ -98,7 +98,7 @@ Este script:
 - Aplica configuración de virtual hosts
 - Reinicia Apache
 
-## 🌐 Agregar Nuevo Dominio
+## Agregar Nuevo Dominio
 
 1. En la interfaz web, ve a la sección "Agregar Nuevo Dominio"
 2. Completa los campos:
@@ -111,7 +111,7 @@ Este script:
 6. Actualiza /etc/hosts
 7. Ejecuta el script de instalación
 
-## 📁 Estructura de Archivos
+## Estructura de Archivos
 
 ```
 ~/localhost-manager/
@@ -132,7 +132,7 @@ Este script:
     └── index.php
 ```
 
-## ⚙️ Configuración de Servicios de Inicio Automático
+## Configuración de Servicios de Inicio Automático
 
 Para que los servicios se inicien automáticamente al arrancar el sistema:
 
@@ -155,7 +155,7 @@ brew services stop mysql@8.4
 sudo apachectl stop
 ```
 
-## 🔧 Comandos Útiles
+## Comandos Útiles
 
 ### Apache
 
@@ -202,36 +202,7 @@ mysql -u root -p -e "SHOW DATABASES;"
 brew services list | grep mysql
 ```
 
-## 📝 Dominios Configurados
-
-Total de dominios extraídos de MAMP Pro: **24**
-
-- vendors.jirafazul.com
-- sendu.io
-- vendors.levantemosguate.com
-- paravida.abkbusiness.com
-- enlineaya.com
-- confiansa.com
-- isi.hospital
-- afiliacionesneonet.com.gt
-- app.anysubscriptions.com
-- latam.paygateway-api.com
-- default.anysubscriptions.com
-- demo.abkbusiness.com
-- gm.seguroselroble.com
-- wk.seguroselroble.com
-- gsso.seguroselroble.com
-- gestorauto.seguroselroble.com
-- appelroble.com
-- addiuva-ws.com
-- bac-onboarding.com
-- onboarding-interbanco.com
-- api-onboarding-gateway.com
-- cworkflow.com
-- guate-seguros.com
-- localhost
-
-## 🔒 Certificados SSL
+## Certificados SSL
 
 Los certificados autofirmados son válidos por **10 años** (3650 días).
 
@@ -242,7 +213,7 @@ Para confiar en un certificado en macOS:
 4. Expande "Trust"
 5. Selecciona "Always Trust"
 
-## 🆘 Solución de Problemas
+## Solución de Problemas
 
 ### Apache no inicia
 
@@ -278,18 +249,18 @@ sudo lsof -i :443
 # Detener MAMP si está corriendo
 ```
 
-## 🎉 Beneficios vs MAMP Pro
+## Beneficios vs MAMP Pro
 
-- ✅ Gratis y de código abierto
-- ✅ Configuración nativa de macOS
-- ✅ Mejor rendimiento
-- ✅ Fácil actualización de componentes
-- ✅ Control total de la configuración
-- ✅ Interfaz web moderna para administración
-- ✅ Generación automática de certificados SSL
-- ✅ Soporte para alias de dominios
+- Gratis y de código abierto
+- Configuración nativa de macOS
+- Mejor rendimiento
+- Fácil actualización de componentes
+- Control total de la configuración
+- Interfaz web moderna para administración
+- Generación automática de certificados SSL
+- Soporte para alias de dominios
 
-## 📞 Soporte
+## Soporte
 
 Para problemas o sugerencias, revisa los logs:
 
