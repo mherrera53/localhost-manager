@@ -1076,7 +1076,7 @@ function initializeDragDrop() {
 
   groupItems.forEach((groupElement, index) => {
     console.log(`[DragDrop] Setting up Sortable for group ${index}`);
-    const _sortableInstance = new Sortable(groupElement as HTMLElement, {
+    new Sortable(groupElement as HTMLElement, {
       group: 'hosts',
       animation: 150,
       ghostClass: 'sortable-ghost',
@@ -1093,7 +1093,7 @@ function initializeDragDrop() {
       scrollSensitivity: 30,
       scrollSpeed: 10,
       bubbleScroll: true,
-      onStart: (_evt: Sortable.SortableEvent) => {
+      onStart: (evt: Sortable.SortableEvent) => {
         console.log('[DragDrop] Started dragging item');
         console.log('[DragDrop] Item:', evt.item);
       },
@@ -1201,7 +1201,7 @@ function initializeDragDrop() {
       handle: '.nav-group-title', // Only drag when grabbing the title area
       filter: '.group-edit-btn', // Don't start drag when clicking edit button
       preventOnFilter: false,
-      onEnd: (evt: Sortable.SortableEvent) => {
+      onEnd: (_evt: Sortable.SortableEvent) => {
         // Save the new group order to localStorage
         const groupElements = groupList.querySelectorAll('.nav-group');
         const groupOrder: string[] = [];
