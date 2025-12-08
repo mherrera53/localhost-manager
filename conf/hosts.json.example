@@ -1,0 +1,54 @@
+{
+  "groups": [
+    {
+      "id": "development",
+      "name": "Development",
+      "hosts": [
+        {
+          "domain": "myproject.local",
+          "aliases": ["www.myproject.local"],
+          "documentRoot": "/Users/youruser/Sites/localhost/myproject",
+          "phpVersion": "8.4",
+          "ssl": true,
+          "enabled": true
+        },
+        {
+          "domain": "api.myproject.local",
+          "aliases": [],
+          "documentRoot": "/Users/youruser/Sites/localhost/myproject-api",
+          "phpVersion": "8.4",
+          "ssl": true,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "name": "Testing",
+      "hosts": [
+        {
+          "domain": "test.local",
+          "aliases": [],
+          "documentRoot": "/Users/youruser/Sites/localhost/test",
+          "phpVersion": "8.4",
+          "ssl": false,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "default",
+      "name": "Ungrouped",
+      "hosts": [
+        {
+          "domain": "localhost",
+          "aliases": [],
+          "documentRoot": "/Users/youruser/Sites/localhost",
+          "phpVersion": "8.4",
+          "ssl": false,
+          "enabled": true
+        }
+      ]
+    }
+  ]
+}

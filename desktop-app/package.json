@@ -1,0 +1,31 @@
+{
+  "name": "desktop-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tabler/core": "^1.4.0",
+    "@tabler/icons-webfont": "^3.35.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2",
+    "@tauri-apps/plugin-http": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-shell": "^2",
+    "bootstrap": "^5.3.8",
+    "sortablejs": "^1.15.6"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/bootstrap": "^5.2.10",
+    "@types/sortablejs": "^1.15.9",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}

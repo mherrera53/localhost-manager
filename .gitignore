@@ -1,0 +1,180 @@
+# Localhost Manager - Git Ignore File
+
+# ============================================
+# Security - Never commit sensitive data
+# ============================================
+
+# SSL Certificates (ALL - no exceptions)
+certs/
+*.key
+*.crt
+*.csr
+*.pem
+
+# Configuration files with sensitive data
+conf/hosts.json
+conf/hosts.txt
+conf/vhosts.conf
+
+# Keychain or credential files
+*.keychain
+credentials.txt
+passwords.txt
+
+# ============================================
+# Backup and Temporary Files
+# ============================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.pathbackup
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+
+# ============================================
+# IDE and Editor Files
+# ============================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PhpStorm / IntelliJ
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+
+# Emacs
+*~
+\#*\#
+
+# Atom
+.atom/
+
+# ============================================
+# OS Generated Files
+# ============================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ============================================
+# Application Specific
+# ============================================
+
+# Apache logs
+*.log
+error_log
+access_log
+
+# PHP
+*.php.bak
+*.php.backup
+
+# Composer dependencies
+/vendor/
+composer.lock
+
+# Node modules
+node_modules/
+
+# ============================================
+# Desktop App (Tauri)
+# ============================================
+
+# Build outputs
+desktop-app/dist/
+desktop-app/src-tauri/target/
+*.dmg
+*.app
+*.exe
+*.msi
+
+# Dependencies
+desktop-app/node_modules/
+
+# Rust
+desktop-app/src-tauri/Cargo.lock
+desktop-app/src-tauri/WixTools/
+
+# ============================================
+# Test and Development Files
+# ============================================
+
+# Test files
+test-*.php
+*-test.php
+*-old.php
+index-new.php
+index-mamp-style.php
+
+# Lock files
+/tmp/localhost-manager-config.lock
+/tmp/*.lock
+
+# Generated configuration backups
+/etc/apache2/*.bak
+
+# ============================================
+# Build and Distribution
+# ============================================
+
+# Distribution files
+/dist/
+/build/
+
+# Release archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# ============================================
+# Documentation Build Files
+# ============================================
+
+# Generated docs
+/docs/_build/
+/docs/.doctrees/
+
+# ============================================
+# Keep Example Files Only
+# ============================================
+
+# Keep example configurations (if they exist)
+!conf/hosts.json.example
+!conf/README.md
