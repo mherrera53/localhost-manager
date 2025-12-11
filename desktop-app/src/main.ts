@@ -2,25 +2,10 @@
 // Main Application Entry Point
 // ============================================
 
-// Import CSS from node_modules (bundled locally)
-import '@tabler/core/dist/css/tabler.min.css';
-import '@tabler/icons-webfont/dist/tabler-icons.min.css';
-
-// Import Bootstrap JS properly for Vite
-import * as bootstrap from 'bootstrap';
-
-// Make Bootstrap available globally for HTML attributes like data-bs-toggle
-(window as any).bootstrap = bootstrap;
-
-// Import local styles (includes Inter font)
-import './styles.css';
-
 import * as phpManager from './php-manager';
 import * as hosts from './hosts';
 import * as api from './api';
 import { initI18n, setLanguage } from './i18n';
-import { initSetupWizard } from './setup-wizard';
-import { initStackManager } from './stack-manager';
 
 // ============================================
 // Initialize Application
@@ -72,26 +57,12 @@ function initializeEventListeners() {
     window.open('http://localhost:8080', '_blank');
   });
 
-  document.getElementById('btn-vscode')?.addEventListener('click', async () => {
-    // Open VS Code with the user's configured projects directory
-    try {
-      const homeDir = await api.getHomeDirectory();
-      const projectsPath = localStorage.getItem('projectsPath') || `${homeDir}/Sites/localhost`;
-      window.open(`vscode://file${projectsPath}`, '_blank');
-    } catch (error) {
-      console.error('Error opening VS Code:', error);
-    }
+  document.getElementById('btn-vscode')?.addEventListener('click', () => {
+    window.open('vscode://file/Users/mario/Sites/localhost', '_blank');
   });
 
-  document.getElementById('btn-backup')?.addEventListener('click', async () => {
-    // Open backup scripts location - configurable per user
-    try {
-      const homeDir = await api.getHomeDirectory();
-      const backupPath = localStorage.getItem('backupScriptPath') || `${homeDir}/Backups`;
-      window.open(`file://${backupPath}`, '_blank');
-    } catch (error) {
-      console.error('Error opening backup location:', error);
-    }
+  document.getElementById('btn-backup')?.addEventListener('click', () => {
+    openBackupManager();
   });
 
   // Add host and group buttons
@@ -134,6 +105,7 @@ function initializeEventListeners() {
       const lang = (e.target as HTMLSelectElement).value;
       localStorage.setItem('language', lang);
       setLanguage(lang);
+      console.log('Language changed to:', lang);
     });
   }
 
@@ -237,9 +209,6 @@ function initializeEventListeners() {
 }
 
 async function loadInitialData() {
-  // Check if first run and show setup wizard
-  await initSetupWizard();
-
   // Detect and set system language
   try {
     const systemLang = await api.getSystemLanguage();
@@ -253,6 +222,8 @@ async function loadInitialData() {
 
       // Initialize i18n with detected/saved language
       initI18n(langToUse);
+
+      console.log(`Language set to: ${langToUse} (system: ${systemLang})`);
     }
   } catch (error) {
     console.error('Failed to detect system language:', error);
@@ -273,7 +244,6 @@ async function loadInitialData() {
 window.addEventListener('DOMContentLoaded', () => {
   initializeEventListeners();
   loadInitialData();
-  initStackManager();
 });
 
 // ============================================
@@ -291,3 +261,154 @@ declare global {
 window.phpManager = phpManager;
 window.hosts = hosts;
 window.hostsManager = hosts;
+
+// ============================================
+// Backup Manager Functions
+// ============================================
+
+async function openBackupManager() {
+  const savedPath = localStorage.getItem('backupScriptPath');
+  const savedApp = localStorage.getItem('backupTerminalApp');
+
+  // If config exists, open directly
+  if (savedPath && savedApp) {
+    await executeBackup(savedPath, savedApp);
+    return;
+  }
+
+  // Otherwise show config modal
+  await showBackupConfigModal();
+}
+
+async function detectInstalledTerminals(): Promise<string[]> {
+  const terminals = [
+    { name: 'Warp', path: '/Applications/Warp.app' },
+    { name: 'iTerm', path: '/Applications/iTerm.app' },
+    { name: 'Terminal', path: '/System/Applications/Utilities/Terminal.app' },
+    { name: 'Hyper', path: '/Applications/Hyper.app' },
+    { name: 'Alacritty', path: '/Applications/Alacritty.app' },
+    { name: 'Kitty', path: '/Applications/kitty.app' },
+    { name: 'VS Code', path: '/Applications/Visual Studio Code.app' },
+  ];
+
+  const installed: string[] = [];
+
+  try {
+    const { Command } = await import('@tauri-apps/plugin-shell');
+
+    for (const term of terminals) {
+      try {
+        const cmd = Command.create('sh', ['-c', `[ -d "${term.path}" ] && echo "yes" || echo "no"`]);
+        const output = await cmd.execute();
+        if (output.stdout.trim() === 'yes') {
+          installed.push(term.name);
+        }
+      } catch {
+        // Ignore errors for individual checks
+      }
+    }
+  } catch (error) {
+    console.error('Error detecting terminals:', error);
+  }
+
+  // Always add Finder as fallback
+  installed.push('Finder');
+
+  return installed.length > 1 ? installed : ['Terminal', 'Finder'];
+}
+
+async function showBackupConfigModal() {
+  const modal = document.getElementById('backupConfigModal');
+  const pathInput = document.getElementById('backup-script-path') as HTMLInputElement;
+  const appSelect = document.getElementById('backup-terminal-app') as HTMLSelectElement;
+  const saveBtn = document.getElementById('btn-save-backup-config');
+  const browseBtn = document.getElementById('btn-browse-backup-script');
+
+  if (!modal || !pathInput || !appSelect || !saveBtn) {
+    console.error('Backup modal elements not found');
+    return;
+  }
+
+  // Detect and populate installed terminals
+  const installedTerminals = await detectInstalledTerminals();
+  appSelect.innerHTML = installedTerminals.map(t =>
+    `<option value="${t}">${t}${t === 'Finder' ? ' (just open folder)' : ''}</option>`
+  ).join('');
+
+  // Load saved values
+  pathInput.value = localStorage.getItem('backupScriptPath') || '';
+  const savedApp = localStorage.getItem('backupTerminalApp');
+  if (savedApp && installedTerminals.includes(savedApp)) {
+    appSelect.value = savedApp;
+  }
+
+  // Show modal
+  const bootstrapModal = new (window as any).bootstrap.Modal(modal);
+  bootstrapModal.show();
+
+  // Setup event handlers (remove old ones first)
+  const newBrowseBtn = browseBtn?.cloneNode(true) as HTMLElement;
+  browseBtn?.parentNode?.replaceChild(newBrowseBtn, browseBtn);
+
+  const newSaveBtn = saveBtn.cloneNode(true) as HTMLElement;
+  saveBtn.parentNode?.replaceChild(newSaveBtn, saveBtn);
+
+  // Browse button handler
+  newBrowseBtn?.addEventListener('click', async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select backup script or folder'
+      });
+      if (selected && typeof selected === 'string') {
+        pathInput.value = selected;
+      }
+    } catch (error) {
+      console.error('Error browsing:', error);
+    }
+  });
+
+  // Save button handler
+  newSaveBtn.addEventListener('click', async () => {
+    const path = pathInput.value.trim();
+    const app = appSelect.value;
+
+    if (!path) {
+      alert('Please enter a path');
+      return;
+    }
+
+    localStorage.setItem('backupScriptPath', path);
+    localStorage.setItem('backupTerminalApp', app);
+
+    bootstrapModal.hide();
+
+    // Small delay to let modal close
+    setTimeout(async () => {
+      await executeBackup(path, app);
+    }, 300);
+  });
+}
+
+async function executeBackup(path: string, app: string) {
+  try {
+    const { Command } = await import('@tauri-apps/plugin-shell');
+
+    console.log(`Opening ${path} with ${app}`);
+
+    if (app === 'Finder') {
+      const command = Command.create('open', [path]);
+      const result = await command.execute();
+      console.log('Finder result:', result);
+    } else {
+      const command = Command.create('open', ['-a', app, path]);
+      const result = await command.execute();
+      console.log('Terminal result:', result);
+    }
+  } catch (error) {
+    console.error('Error executing backup:', error);
+    alert(`Error opening: ${error}`);
+  }
+}

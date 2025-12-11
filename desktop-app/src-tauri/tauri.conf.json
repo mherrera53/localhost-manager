@@ -19,7 +19,9 @@
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "center": true
+        "center": true,
+        "visible": false,
+        "hiddenTitle": true
       }
     ],
     "security": {
@@ -49,6 +51,7 @@
       "signingIdentity": null,
       "providerShortName": null,
       "entitlements": null,
+      "infoPlist": "Info.plist",
       "dmg": {
         "appPosition": {
           "x": 180,
@@ -72,10 +75,13 @@
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
       },
-      "wix": {
-        "language": "en-US"
-      },
+      "wix": null,
       "nsis": {
+        "languages": ["English", "Spanish"],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "headerImage": null,
+        "sidebarImage": null,
         "installMode": "currentUser"
       }
     },

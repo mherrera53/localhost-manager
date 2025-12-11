@@ -9,25 +9,7 @@ import { showToast } from './ui';
 import * as api from './api';
 import type { ApacheAction, VirtualHost, ServicesStatus } from './types';
 
-// Scripts path will be fetched dynamically from the backend
-let SCRIPTS_PATH = '';
-
-// Initialize scripts path
-async function initScriptsPath() {
-  try {
-    SCRIPTS_PATH = await api.getScriptsPath();
-  } catch (error) {
-    console.error('Failed to get scripts path:', error);
-  }
-}
-
-// Detect if we're on Windows
-function isWindows(): boolean {
-  return navigator.platform.toLowerCase().includes('win');
-}
-
-// Call init on module load
-initScriptsPath();
+const SCRIPTS_PATH = '/Users/mario/localhost-manager/scripts';
 
 // Stack configuration
 interface StackConfig {
@@ -50,9 +32,9 @@ const STACK_CONFIGS: Record<string, StackConfig> = {
     mysqlPath: '/opt/homebrew/bin/mysql',
     hostsPath: '/etc/hosts',
     vhostPath: '/opt/homebrew/etc/httpd/extra/httpd-vhosts.conf',
-    startCommand: 'brew services start httpd',
-    stopCommand: 'brew services stop httpd',
-    restartCommand: 'brew services restart httpd'
+    startCommand: '/opt/homebrew/bin/brew services start httpd',
+    stopCommand: '/opt/homebrew/bin/brew services stop httpd',
+    restartCommand: '/opt/homebrew/bin/brew services restart httpd'
   },
   mamp: {
     name: 'MAMP / MAMP PRO',
@@ -119,6 +101,7 @@ let servicesStatus: ServicesStatus = {
   all_running: false
 };
 let currentHost: VirtualHost | null = null;
+// let currentStack: StackConfig = STACK_CONFIGS.native;
 
 export async function loadVirtualHosts() {
   try {
@@ -514,7 +497,7 @@ function renderAliases(domain: string) {
 
       return `
         <div class="d-inline-flex align-items-center gap-1 mb-1 me-1">
-          <span class="badge bg-blue-lt">${aliasValue}</span>
+          <span class="badge" style="background-color: #e0e7ff; color: #3730a3; font-weight: 500;">${aliasValue}</span>
           <button class="btn btn-sm btn-ghost-danger p-0"
                   onclick="window.hostsManager.removeAlias('${domain}', '${aliasId}')"
                   style="width: 20px; height: 20px; line-height: 1;">
@@ -602,31 +585,80 @@ export async function removeAlias(domain: string, aliasId: string) {
 }
 
 export async function addAlias(domain: string) {
-  const aliasValue = prompt('Enter alias domain:');
-  if (!aliasValue || !aliasValue.trim()) return;
+  // Set up the modal
+  const modal = document.getElementById('addAliasModal');
+  const input = document.getElementById('add-alias-input') as HTMLInputElement;
+  const confirmBtn = document.getElementById('btn-confirm-add-alias');
 
-  try {
-    const host = virtualHosts[domain];
-    if (!host) return;
-
-    // Generate unique ID
-    const newAlias = {
-      id: `alias_${Math.random().toString(36).substr(2, 9)}`,
-      value: aliasValue.trim(),
-      active: true
-    };
-
-    if (!host.aliases) host.aliases = [];
-    host.aliases.push(newAlias);
-
-    await api.saveVirtualHosts(virtualHosts);
-
-    renderAliases(domain);
-    showToast('Alias added successfully. Remember to generate configs!', 'success');
-  } catch (error) {
-    console.error('Error adding alias:', error);
-    showToast('Failed to add alias', 'error');
+  if (!modal || !input || !confirmBtn) {
+    console.error('Add alias modal elements not found');
+    return;
   }
+
+  // Clear input
+  input.value = '';
+
+  // Show modal using Bootstrap
+  const bootstrapModal = new (window as any).bootstrap.Modal(modal);
+  bootstrapModal.show();
+
+  // Focus on input after modal is shown
+  modal.addEventListener('shown.bs.modal', () => {
+    input.focus();
+  }, { once: true });
+
+  // Handle add confirmation
+  const handleAdd = async () => {
+    const aliasValue = input.value.trim();
+
+    if (!aliasValue) {
+      bootstrapModal.hide();
+      return;
+    }
+
+    try {
+      const host = virtualHosts[domain];
+      if (!host) return;
+
+      // Generate unique ID
+      const newAlias = {
+        id: `alias_${Math.random().toString(36).substr(2, 9)}`,
+        value: aliasValue,
+        active: true
+      };
+
+      if (!host.aliases) host.aliases = [];
+      host.aliases.push(newAlias);
+
+      await api.saveVirtualHosts(virtualHosts);
+
+      renderAliases(domain);
+      showToast('Alias added successfully. Remember to generate configs!', 'success');
+    } catch (error) {
+      console.error('Error adding alias:', error);
+      showToast('Failed to add alias', 'error');
+    }
+
+    bootstrapModal.hide();
+    confirmBtn.removeEventListener('click', handleAdd);
+  };
+
+  // Add event listener for confirm button
+  confirmBtn.addEventListener('click', handleAdd, { once: true });
+
+  // Handle Enter key in input
+  const handleEnter = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+  input.addEventListener('keypress', handleEnter, { once: true });
+
+  // Clean up event listeners when modal is hidden
+  modal.addEventListener('hidden.bs.modal', () => {
+    input.removeEventListener('keypress', handleEnter);
+  }, { once: true });
 }
 
 export async function renameDomain() {
@@ -771,12 +803,11 @@ function updateServicesUI() {
 
 export async function executeApacheCommand(action: ApacheAction) {
   try {
+    const scriptPath = `${SCRIPTS_PATH}/${action}-apache-native.sh`;
+    const command = Command.create('bash', [scriptPath]);
+
     const actionVerb = action.charAt(0).toUpperCase() + action.slice(1);
     showToast(`${actionVerb}ing Apache...`, 'warning');
-
-    const command = isWindows()
-      ? Command.create('powershell', ['-ExecutionPolicy', 'Bypass', '-File', `${SCRIPTS_PATH}\\${action}-apache.ps1`])
-      : Command.create('bash', [`${SCRIPTS_PATH}/${action}-apache-native.sh`]);
 
     const output = await command.execute();
 
@@ -795,14 +826,11 @@ export async function executeApacheCommand(action: ApacheAction) {
 
 export async function generateConfigs() {
   try {
-    showToast('Generating configurations...', 'warning');
+    showToast('Generating and applying configurations...', 'warning');
 
-    // Step 1: Generate configs
-    await api.generateConfigs();
-
-    // Step 2: Apply configs
-    showToast('Applying configurations...', 'warning');
-    await api.applyConfigs();
+    // generateConfigs() already includes install.sh execution
+    const genResult = await api.generateConfigs();
+    console.log('Generate result:', genResult);
 
     showToast('Configurations applied successfully!', 'success');
 
@@ -821,37 +849,28 @@ export async function toggleServices() {
   try {
     showToast(`${action === 'start' ? 'Starting' : 'Stopping'} services...`, 'warning');
 
-    let command;
+    // Detect installed services dynamically
+    const detectCmd = Command.create('sh', ['-c', '/opt/homebrew/bin/brew services list | grep -E "httpd|mysql|php" | awk \'{print $1}\'']);
+    const detectOutput = await detectCmd.execute();
 
-    if (isWindows()) {
-      // Windows: Use PowerShell to control services
-      // Try common Windows service names for XAMPP, WAMP, or standalone installations
-      const services = ['Apache2.4', 'MySQL80', 'MySQL'];
-      const psCommands = services.map(svc =>
-        action === 'start'
-          ? `Start-Service -Name '${svc}' -ErrorAction SilentlyContinue`
-          : `Stop-Service -Name '${svc}' -ErrorAction SilentlyContinue`
-      ).join('; ');
-
-      command = Command.create('powershell', ['-Command', psCommands]);
-    } else {
-      // macOS/Linux: Use brew services
-      const cmd = action === 'start'
-        ? 'brew services start httpd && brew services start mysql@8.4 && brew services start php@8.4'
-        : 'brew services stop httpd && brew services stop mysql@8.4 && brew services stop php@8.4';
-
-      command = Command.create('sh', ['-c', cmd]);
+    let services = ['httpd', 'mysql', 'php']; // defaults
+    if (detectOutput.code === 0 && detectOutput.stdout) {
+      const detected = detectOutput.stdout.trim().split('\n').filter(s => s);
+      if (detected.length > 0) {
+        services = detected;
+      }
     }
 
+    // Build command with detected services
+    const serviceCommands = services.map(s => `/opt/homebrew/bin/brew services ${action} ${s}`).join(' && ');
+    const command = Command.create('sh', ['-c', serviceCommands]);
     const output = await command.execute();
 
     if (output.code === 0) {
       showToast('Services toggled successfully', 'success');
       setTimeout(() => loadServicesStatus(), 2000);
     } else {
-      // Even if return code is not 0, some services may have been toggled
-      showToast('Some services may not have been toggled', 'warning');
-      setTimeout(() => loadServicesStatus(), 2000);
+      showToast(`Failed to toggle services: ${output.stderr}`, 'error');
     }
   } catch (error) {
     console.error('Error toggling services:', error);
@@ -1031,7 +1050,17 @@ export function onStackChanged(stackKey: string) {
     return;
   }
 
+  // currentStack = stack;
   showToast(`Switched to ${stack.name}`, 'success');
+
+  // TODO: Detect if stack is actually installed
+  // TODO: Update service commands to use new stack
+  // TODO: Auto-detect installed PHP/Apache/MySQL versions for this stack
+
+  console.log('Stack changed to:', stack);
+  console.log('Apache path:', stack.apachePath);
+  console.log('PHP path:', stack.phpPath);
+  console.log('MySQL path:', stack.mysqlPath);
 }
 
 // Auto-detect stack on load
@@ -1092,10 +1121,15 @@ export async function browseModalDocrootFolder() {
 // ============================================
 
 function initializeDragDrop() {
+  console.log('[DragDrop] Initializing drag & drop...');
+  console.log('[DragDrop] Sortable available:', typeof Sortable !== 'undefined');
+
   // Initialize drag & drop for individual hosts between groups
   const groupItems = document.querySelectorAll('.nav-group-items');
+  console.log(`[DragDrop] Found ${groupItems.length} group containers`);
 
-  groupItems.forEach((groupElement) => {
+  groupItems.forEach((groupElement, index) => {
+    console.log(`[DragDrop] Setting up Sortable for group ${index}`);
     new Sortable(groupElement as HTMLElement, {
       group: 'hosts',
       animation: 150,
@@ -1103,7 +1137,7 @@ function initializeDragDrop() {
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
       draggable: '.host-link',
-      forceFallback: true,
+      forceFallback: true,  // FORCE fallback mode for reliability
       fallbackTolerance: 3,
       fallbackOnBody: true,
       swapThreshold: 0.65,
@@ -1113,35 +1147,55 @@ function initializeDragDrop() {
       scrollSensitivity: 30,
       scrollSpeed: 10,
       bubbleScroll: true,
+      onStart: (evt: Sortable.SortableEvent) => {
+        console.log('[DragDrop] Started dragging item');
+        console.log('[DragDrop] Item:', evt.item);
+      },
       onEnd: async (evt: Sortable.SortableEvent) => {
+        console.log('[DragDrop] Drop event triggered');
+        console.log('[DragDrop] From:', evt.from);
+        console.log('[DragDrop] To:', evt.to);
+
         // Get domain from the dragged element
         const draggedLink = evt.item as HTMLElement;
         const domain = draggedLink.getAttribute('data-domain');
 
+        console.log('[DragDrop] Dragged domain:', domain);
+
         if (!domain) {
+          console.error('[DragDrop] No domain found on dragged element');
           return;
         }
 
         // Find the new group by looking at the parent container
         const newGroupElement = evt.to.closest('.nav-group');
+        console.log('[DragDrop] New group element:', newGroupElement);
 
         if (!newGroupElement) {
+          console.error('[DragDrop] ERROR: New group element not found');
+          console.error('[DragDrop] evt.to:', evt.to);
+          console.error('[DragDrop] evt.to.parentElement:', evt.to.parentElement);
           renderSidebarHosts();
           return;
         }
 
         const newGroupTitle = newGroupElement.querySelector('.group-name');
+        console.log('[DragDrop] New group title element:', newGroupTitle);
 
         if (!newGroupTitle) {
+          console.error('[DragDrop] ERROR: New group title not found');
+          console.error('[DragDrop] newGroupElement HTML:', newGroupElement.innerHTML.substring(0, 200));
           renderSidebarHosts();
           return;
         }
 
         const newGroup = newGroupTitle.textContent?.trim() || 'Uncategorized';
+        console.log('[DragDrop] Target group name:', newGroup);
 
         // Check if group actually changed
         const host = virtualHosts[domain];
         if (!host) {
+          console.error('Host not found:', domain);
           renderSidebarHosts();
           return;
         }
@@ -1156,6 +1210,7 @@ function initializeDragDrop() {
           } catch (error) {
             console.error('Error moving host:', error);
             showToast('Failed to move host', 'error');
+            // Refresh to revert
             renderSidebarHosts();
             return;
           }
@@ -1184,8 +1239,13 @@ function initializeDragDrop() {
 
   // Initialize drag & drop for reordering entire groups/folders
   const groupList = document.getElementById('group-list');
+  console.log('[DragDrop] Group list element:', groupList);
 
   if (groupList) {
+    console.log('[DragDrop] Setting up group reordering');
+    const groupCount = groupList.querySelectorAll('.nav-group').length;
+    console.log(`[DragDrop] Found ${groupCount} groups to reorder`);
+
     new Sortable(groupList as HTMLElement, {
       animation: 150,
       ghostClass: 'sortable-ghost',

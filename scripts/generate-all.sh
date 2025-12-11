@@ -23,11 +23,6 @@ SCRIPTS_DIR="$HOME/localhost-manager/scripts"
 CONF_DIR="$HOME/localhost-manager/conf"
 HOSTS_FILE="$CONF_DIR/hosts.json"
 
-# Función para ejecutar comando con sudo (usa Touch ID)
-run_sudo() {
-    sudo "$@"
-}
-
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}  Localhost Manager - Generador de Configuración${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -40,7 +35,7 @@ if [ ! -f "$HOSTS_FILE" ]; then
 fi
 
 # 1. Generar Virtual Hosts de Apache
-echo -e "${YELLOW}[1/3]${NC} Generando Virtual Hosts de Apache..."
+echo -e "${YELLOW}[1/2]${NC} Generando Virtual Hosts de Apache..."
 if bash "$SCRIPTS_DIR/generate-vhosts-config.sh" > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} Virtual Hosts generados"
 else
@@ -49,21 +44,14 @@ else
 fi
 
 # 2. Generar Certificados SSL
-echo -e "${YELLOW}[2/3]${NC} Generando Certificados SSL..."
+echo -e "${YELLOW}[2/2]${NC} Generando Certificados SSL..."
 if bash "$SCRIPTS_DIR/generate-certificates.sh" > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} Certificados SSL generados"
 else
     echo -e "${YELLOW}⚠${NC} Error generando certificados (se continuará de todos modos)"
 fi
 
-# 3. Actualizar /etc/hosts
-echo -e "${YELLOW}[3/3]${NC} Actualizando /etc/hosts..."
-if run_sudo bash "$SCRIPTS_DIR/update-hosts.sh" > /dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC} /etc/hosts actualizado"
-else
-    echo -e "${YELLOW}⚠${NC} No se pudo actualizar /etc/hosts (requiere sudo)"
-    echo -e "${YELLOW}    Ejecuta manualmente: sudo bash $SCRIPTS_DIR/update-hosts.sh${NC}"
-fi
+# NOTA: /etc/hosts se actualiza en install.sh con privilegios de admin
 
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

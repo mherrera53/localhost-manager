@@ -8,6 +8,15 @@
     "opener:default",
     "dialog:default",
     "shell:default",
+    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "sh", "cmd": "sh", "args": true },
+        { "name": "open", "cmd": "open", "args": true },
+        { "name": "brew", "cmd": "/opt/homebrew/bin/brew", "args": true }
+      ]
+    },
     "http:default",
     "fs:default"
   ]
