@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ============================================
-# SSL Certificate Generator - Optimized
+# SSL Certificate Generator with Root CA
 # Localhost Manager
 # ============================================
 # Features:
-# - No PHP dependency (uses jq or python fallback)
+# - Local Root CA for browser trust
 # - Certificate caching (skip valid certs)
 # - Better error handling
 # - Wildcard support
@@ -17,8 +17,14 @@ set -e
 # Configuration
 CERT_DIR="${CERT_DIR:-$HOME/localhost-manager/certs}"
 HOSTS_JSON="${HOSTS_JSON:-$HOME/localhost-manager/conf/hosts.json}"
-DAYS_VALID=3650  # 10 years
-MIN_DAYS_REMAINING=30  # Regenerate if less than this many days remain
+DAYS_VALID=730       # 2 years for domain certs
+CA_DAYS_VALID=3650   # 10 years for Root CA
+MIN_DAYS_REMAINING=30
+
+# Root CA files
+CA_KEY="$CERT_DIR/LocalRootCA.key"
+CA_CERT="$CERT_DIR/LocalRootCA.crt"
+CA_NAME="LocalDev Root CA"
 
 # Colors
 RED='\033[0;31m'
@@ -34,13 +40,46 @@ FAILED=0
 
 echo -e "${BLUE}======================================${NC}"
 echo -e "${BLUE}  SSL Certificate Generator${NC}"
+echo -e "${BLUE}  with Local Root CA${NC}"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 
 # Create certificate directory
 mkdir -p "$CERT_DIR"
 
-# Check if certificate is still valid (not expiring soon)
+# ============================================
+# STEP 1: Create Root CA if not exists
+# ============================================
+create_root_ca() {
+    if [ -f "$CA_CERT" ] && [ -f "$CA_KEY" ]; then
+        echo -e "${YELLOW}[Root CA]${NC} Already exists, skipping creation"
+        return 0
+    fi
+
+    echo -e "${YELLOW}[Root CA]${NC} Creating Local Root CA..."
+
+    # Generate CA private key (4096 bits for security)
+    openssl genrsa -out "$CA_KEY" 4096 2>/dev/null
+
+    # Generate CA certificate
+    openssl req -x509 -new -nodes \
+        -key "$CA_KEY" \
+        -sha256 \
+        -days "$CA_DAYS_VALID" \
+        -out "$CA_CERT" \
+        -subj "/C=GT/ST=Guatemala/L=Guatemala/O=LocalDev/OU=Development/CN=$CA_NAME" \
+        2>/dev/null
+
+    if [ -f "$CA_CERT" ]; then
+        echo -e "${GREEN}✓${NC} Root CA created: $CA_CERT"
+        echo -e "${YELLOW}  Note:${NC} Run install.sh to trust this CA in your system"
+    else
+        echo -e "${RED}✗${NC} Failed to create Root CA"
+        return 1
+    fi
+}
+
+# Check if certificate is still valid
 cert_is_valid() {
     local cert_file="$1"
     local min_days="${2:-$MIN_DAYS_REMAINING}"
@@ -53,7 +92,6 @@ cert_is_valid() {
 
     local expiry_epoch current_epoch min_epoch
 
-    # Convert dates to epoch (cross-platform)
     if [[ "$OSTYPE" == "darwin"* ]]; then
         expiry_epoch=$(date -j -f "%b %d %H:%M:%S %Y %Z" "$expiry_date" "+%s" 2>/dev/null) || return 1
     else
@@ -66,15 +104,28 @@ cert_is_valid() {
     [ "$expiry_epoch" -gt "$min_epoch" ]
 }
 
-# Generate a single certificate
-generate_cert() {
+# Check if certificate is signed by our Root CA
+cert_is_signed_by_ca() {
+    local cert_file="$1"
+    [ ! -f "$cert_file" ] && return 1
+    [ ! -f "$CA_CERT" ] && return 1
+
+    local issuer
+    issuer=$(openssl x509 -in "$cert_file" -noout -issuer 2>/dev/null | grep -o "CN=[^,/]*" | head -1)
+    [[ "$issuer" == *"$CA_NAME"* ]]
+}
+
+# Generate a certificate signed by Root CA
+generate_signed_cert() {
     local domain="$1"
     local san_list="$2"
     local cert_file="$CERT_DIR/${domain}.crt"
     local key_file="$CERT_DIR/${domain}.key"
+    local csr_file="$CERT_DIR/${domain}.csr"
+    local ext_file="$CERT_DIR/${domain}.ext"
 
-    # Check if certificate already exists and is valid
-    if cert_is_valid "$cert_file"; then
+    # Check if certificate is valid AND signed by our CA
+    if cert_is_valid "$cert_file" && cert_is_signed_by_ca "$cert_file"; then
         echo -e "  ${YELLOW}⊘${NC} $domain (valid, skipped)"
         ((SKIPPED++))
         return 0
@@ -83,7 +134,6 @@ generate_cert() {
     # Build SAN string
     local san_string="DNS:${domain}"
 
-    # Add aliases to SAN
     if [ -n "$san_list" ]; then
         IFS=',' read -ra SANS <<< "$san_list"
         for san in "${SANS[@]}"; do
@@ -95,27 +145,48 @@ generate_cert() {
     # Add wildcard and IP
     san_string="${san_string},DNS:*.${domain},IP:127.0.0.1"
 
-    # Generate certificate
-    if openssl req -x509 -nodes -days "$DAYS_VALID" \
-        -newkey rsa:2048 \
-        -keyout "$key_file" \
+    # Generate private key
+    openssl genrsa -out "$key_file" 2048 2>/dev/null
+
+    # Generate CSR
+    openssl req -new \
+        -key "$key_file" \
+        -out "$csr_file" \
+        -subj "/C=GT/ST=Guatemala/L=Guatemala/O=LocalDev/CN=$domain" \
+        2>/dev/null
+
+    # Create extensions file
+    cat > "$ext_file" << EOF
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = $san_string
+EOF
+
+    # Sign with Root CA
+    if openssl x509 -req \
+        -in "$csr_file" \
+        -CA "$CA_CERT" \
+        -CAkey "$CA_KEY" \
+        -CAcreateserial \
         -out "$cert_file" \
-        -subj "/C=US/ST=Development/L=LocalDev/O=Localhost Manager/OU=Development/CN=${domain}" \
-        -addext "subjectAltName = ${san_string}" \
-        -addext "basicConstraints = CA:FALSE" \
-        -addext "keyUsage = nonRepudiation, digitalSignature, keyEncipherment" \
+        -days "$DAYS_VALID" \
+        -sha256 \
+        -extfile "$ext_file" \
         2>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} $domain"
+        echo -e "  ${GREEN}✓${NC} $domain (signed by Root CA)"
         ((GENERATED++))
+        rm -f "$csr_file" "$ext_file"
         return 0
     else
         echo -e "  ${RED}✗${NC} $domain (failed)"
         ((FAILED++))
+        rm -f "$csr_file" "$ext_file"
         return 1
     fi
 }
 
-# Parse JSON using jq or python (no PHP dependency)
+# Parse JSON using jq or python
 get_active_domains() {
     local json_file="$1"
 
@@ -123,15 +194,6 @@ get_active_domains() {
         jq -r 'to_entries | .[] | select(.value.active == true or .value.active == null) | .key' "$json_file" 2>/dev/null
     elif command -v python3 &> /dev/null; then
         python3 -c "
-import json
-with open('$json_file') as f:
-    data = json.load(f)
-for domain, config in data.items():
-    if config.get('active', True):
-        print(domain)
-" 2>/dev/null
-    elif command -v python &> /dev/null; then
-        python -c "
 import json
 with open('$json_file') as f:
     data = json.load(f)
@@ -174,36 +236,39 @@ print(','.join(result))
     fi
 }
 
-# Generate default certificate for localhost
-echo -e "${YELLOW}[1/2]${NC} Generating default certificate..."
-generate_cert "default" "localhost"
+# ============================================
+# Main execution
+# ============================================
+
+# Step 1: Create Root CA
+echo -e "${YELLOW}[1/3]${NC} Checking Root CA..."
+create_root_ca
 echo ""
 
-# Check if hosts.json exists
+# Step 2: Generate default certificate
+echo -e "${YELLOW}[2/3]${NC} Generating default certificate..."
+generate_signed_cert "default" "localhost"
+echo ""
+
+# Step 3: Process hosts from JSON
+echo -e "${YELLOW}[3/3]${NC} Processing hosts..."
+echo ""
+
 if [ ! -f "$HOSTS_JSON" ]; then
     echo -e "${YELLOW}No hosts.json found at $HOSTS_JSON${NC}"
     echo -e "${YELLOW}Only default certificate was generated${NC}"
-    exit 0
-fi
-
-# Process hosts from JSON
-echo -e "${YELLOW}[2/2]${NC} Processing hosts..."
-echo ""
-
-domains=$(get_active_domains "$HOSTS_JSON")
-
-if [ -z "$domains" ]; then
-    echo -e "${YELLOW}No active hosts found in hosts.json${NC}"
 else
-    while IFS= read -r domain; do
-        [ -z "$domain" ] && continue
+    domains=$(get_active_domains "$HOSTS_JSON")
 
-        # Get aliases for this domain
-        aliases=$(get_domain_aliases "$HOSTS_JSON" "$domain")
-
-        # Generate certificate
-        generate_cert "$domain" "$aliases"
-    done <<< "$domains"
+    if [ -z "$domains" ]; then
+        echo -e "${YELLOW}No active hosts found in hosts.json${NC}"
+    else
+        while IFS= read -r domain; do
+            [ -z "$domain" ] && continue
+            aliases=$(get_domain_aliases "$HOSTS_JSON" "$domain")
+            generate_signed_cert "$domain" "$aliases"
+        done <<< "$domains"
+    fi
 fi
 
 echo ""
@@ -214,10 +279,13 @@ echo -e "  Generated: ${GREEN}$GENERATED${NC}"
 echo -e "  Skipped:   ${YELLOW}$SKIPPED${NC}"
 echo -e "  Failed:    ${RED}$FAILED${NC}"
 echo ""
-echo -e "Location: $CERT_DIR"
-echo -e "Validity: $DAYS_VALID days"
+echo -e "Root CA:     $CA_CERT"
+echo -e "Certs Dir:   $CERT_DIR"
+echo -e "Validity:    $DAYS_VALID days (certs), $CA_DAYS_VALID days (CA)"
+echo ""
+echo -e "${YELLOW}Important:${NC} Run install.sh to trust the Root CA in your system."
+echo -e "           Once trusted, all certificates will be valid in browsers."
 echo ""
 
-# Exit with error if any failed
 [ "$FAILED" -gt 0 ] && exit 1
 exit 0

@@ -62,20 +62,44 @@ if [ ! -f "\${SSL_DIR}/default.crt" ]; then
         2>/dev/null
 fi
 
-echo "[5/8] Copiando certificados SSL..."
+echo "[5/9] Copiando certificados SSL..."
 if [ -d "\${CERT_DIR}" ]; then
-    cp -p "\${CERT_DIR}"/*.crt "\${SSL_DIR}/" 2>/dev/null || true
-    cp -p "\${CERT_DIR}"/*.key "\${SSL_DIR}/" 2>/dev/null || true
+    # Copy all certs except Root CA to Apache SSL dir
+    for cert in "\${CERT_DIR}"/*.crt; do
+        [ -f "\$cert" ] || continue
+        certname=\$(basename "\$cert")
+        [ "\$certname" = "LocalRootCA.crt" ] && continue
+        cp -p "\$cert" "\${SSL_DIR}/" 2>/dev/null || true
+    done
+    for key in "\${CERT_DIR}"/*.key; do
+        [ -f "\$key" ] || continue
+        keyname=\$(basename "\$key")
+        [ "\$keyname" = "LocalRootCA.key" ] && continue
+        cp -p "\$key" "\${SSL_DIR}/" 2>/dev/null || true
+    done
     chmod 644 "\${SSL_DIR}"/*.crt 2>/dev/null || true
     chmod 600 "\${SSL_DIR}"/*.key 2>/dev/null || true
 fi
 
-echo "[6/8] Aplicando configuración de Virtual Hosts..."
+echo "[6/9] Installing Root CA to System Keychain..."
+CA_CERT="\${CERT_DIR}/LocalRootCA.crt"
+CA_NAME="LocalDev Root CA"
+if [ -f "\${CA_CERT}" ]; then
+    # Check if already installed
+    if security find-certificate -c "\${CA_NAME}" /Library/Keychains/System.keychain >/dev/null 2>&1; then
+        echo "  Root CA already trusted"
+    else
+        security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "\${CA_CERT}"
+        echo "  Root CA installed to System Keychain"
+    fi
+fi
+
+echo "[7/9] Aplicando configuración de Virtual Hosts..."
 if [ -f "\${CONF_DIR}/vhosts.conf" ]; then
     cp -f "\${CONF_DIR}/vhosts.conf" "\${APACHE_VHOSTS_CONF}"
 fi
 
-echo "[7/8] Actualizando /etc/hosts..."
+echo "[8/9] Actualizando /etc/hosts..."
 cp /etc/hosts /etc/hosts.backup 2>/dev/null || true
 sed -i.bak '/# Localhost Manager/,/# End Localhost Manager/d' /etc/hosts 2>/dev/null || true
 
@@ -91,7 +115,7 @@ if [ -f "\${HOSTS_JSON}" ]; then
     echo "# End Localhost Manager" >> /etc/hosts
 fi
 
-echo "[8/8] Verificando y reiniciando Apache..."
+echo "[9/9] Verificando y reiniciando Apache..."
 /usr/sbin/apachectl configtest 2>&1 | grep -v "fully qualified domain name" || true
 /usr/sbin/apachectl stop 2>/dev/null || true
 sleep 1
