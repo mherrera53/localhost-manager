@@ -777,8 +777,7 @@ pub struct SetupConfig {
 pub async fn create_initial_config(config: SetupConfig) -> Result<(), String> {
     // Ensure the conf/ directory exists.
     let conf_dir = std::path::Path::new(&config.config_path).join("conf");
-    fs::create_dir_all(&conf_dir)
-        .map_err(|e| format!("Failed to create conf directory: {}", e))?;
+    fs::create_dir_all(&conf_dir).map_err(|e| format!("Failed to create conf directory: {}", e))?;
 
     // Create the initial hosts.json ONLY if it does not already exist, so that
     // re-running the setup wizard is idempotent and never overwrites an
