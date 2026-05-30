@@ -1157,27 +1157,33 @@ export async function executeApacheCommand(action: ApacheAction) {
 
 export async function generateConfigs() {
   try {
-    showToast('Configuring everything automatically...', 'warning');
+    showToast('Applying configuration (Touch ID)…', 'warning');
 
-    // Run the master setup script that does EVERYTHING
-    const scriptPath = `${SCRIPTS_PATH}/setup-all.sh`;
-    const command = Command.create('bash', [scriptPath]);
+    // Centralized elevation: one privileged run (Touch ID on macOS) that
+    // regenerates certs + vhosts AND applies /etc/hosts + Apache -- exactly the
+    // same path used when toggling a host, so there is a single prompt.
+    const command = IS_WINDOWS
+      ? Command.create('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+          `Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${SCRIPTS_PATH}\\windows\\update-hosts.ps1'`
+        ])
+      : Command.create('sh', ['-c',
+          `osascript -e 'do shell script "bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh" with administrator privileges'`
+        ]);
     const output = await command.execute();
 
     if (output.code === 0) {
-      showToast('All configurations applied successfully!', 'success');
-      console.log('Setup output:', output.stdout);
+      showToast('Configuration applied successfully!', 'success');
     } else {
-      showToast('Setup completed with warnings', 'warning');
-      console.error('Setup stderr:', output.stderr);
+      showToast('Configuration finished with warnings', 'warning');
+      console.error('apply stderr:', output.stderr);
     }
 
-    // Reload hosts and services after generation
+    // Reload hosts and services after applying
     await loadVirtualHosts();
     await loadServicesStatus();
   } catch (error) {
-    console.error('Error during setup:', error);
-    showToast(`Setup failed: ${error}`, 'error');
+    console.error('Error applying configuration:', error);
+    showToast(`Apply failed: ${error}`, 'error');
   }
 }
 
