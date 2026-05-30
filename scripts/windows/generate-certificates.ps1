@@ -112,6 +112,38 @@ function Test-CertificateValid {
     }
 }
 
+# Function to check if a cert already covers every required DNS name (SAN).
+# Returns $false if any required name is missing -> cert must be regenerated.
+# This is what makes newly-added aliases take effect without deleting certs.
+function Test-CertCoversSans {
+    param(
+        [string]$CertFile,
+        [string[]]$RequiredDns
+    )
+
+    if (-not (Test-Path $CertFile)) {
+        return $false
+    }
+
+    try {
+        $text = & $OpenSSL x509 -in $CertFile -noout -ext subjectAltName 2>$null
+        if (-not $text) {
+            return $false
+        }
+        $current = [regex]::Matches([string]$text, 'DNS:([^,\s]+)') | ForEach-Object { $_.Groups[1].Value }
+        foreach ($name in $RequiredDns) {
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            if ($current -notcontains $name.Trim()) {
+                return $false
+            }
+        }
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
 # Function to generate certificate
 function New-SelfSignedCert {
     param(
@@ -123,26 +155,31 @@ function New-SelfSignedCert {
     $certFile = "$CertDir\$Domain.crt"
     $keyFile = "$CertDir\$Domain.key"
 
-    # Check if certificate already exists and is valid
-    if (-not $Force -and (Test-CertificateValid -CertFile $certFile)) {
-        Write-Host "[SKIP] $Domain (valid, not expiring)" -ForegroundColor Yellow
+    # Build the list of required DNS names: domain + aliases + wildcard.
+    # Aliases follow the parent, so every passed alias is included.
+    $requiredDns = @($Domain)
+    foreach ($alias in $Aliases) {
+        if ($alias -and $alias.Trim()) {
+            $requiredDns += $alias.Trim()
+        }
+    }
+    $requiredDns += "*.$Domain"
+
+    # Skip ONLY if the cert is valid AND already covers every required SAN.
+    # If an alias was added, the stored SAN is stale -> regenerate.
+    if (-not $Force -and (Test-CertificateValid -CertFile $certFile) -and (Test-CertCoversSans -CertFile $certFile -RequiredDns $requiredDns)) {
+        Write-Host "[SKIP] $Domain (valid, SANs covered)" -ForegroundColor Yellow
         $script:Skipped++
         return $true
     }
 
-    # Build SAN list
-    $sanList = @("DNS.1 = $Domain")
-    $sanIndex = 2
-
-    foreach ($alias in $Aliases) {
-        if ($alias -and $alias.Trim()) {
-            $sanList += "DNS.$sanIndex = $($alias.Trim())"
-            $sanIndex++
-        }
+    # Build SAN list from the required DNS names
+    $sanList = @()
+    $sanIndex = 1
+    foreach ($name in $requiredDns) {
+        $sanList += "DNS.$sanIndex = $name"
+        $sanIndex++
     }
-
-    # Add wildcard
-    $sanList += "DNS.$sanIndex = *.$Domain"
 
     $sanConfig = $sanList -join "`n"
 
@@ -231,14 +268,15 @@ if (Test-Path $HostsJson) {
                 continue
             }
 
-            # Get aliases
+            # Get aliases. Aliases follow the parent: this domain is active, so
+            # include ALL its aliases. Per-alias "active" is ignored on purpose.
             $aliases = @()
             if ($config.aliases) {
                 foreach ($alias in $config.aliases) {
                     if ($alias -is [string] -and $alias.Trim()) {
                         $aliases += $alias.Trim()
                     }
-                    elseif ($alias.value -and ($null -eq $alias.active -or $alias.active)) {
+                    elseif ($alias.value) {
                         $aliases += $alias.value.Trim()
                     }
                 }

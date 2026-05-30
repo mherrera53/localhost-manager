@@ -13,8 +13,10 @@
       "identifier": "shell:allow-execute",
       "allow": [
         { "name": "sh", "cmd": "sh", "args": true },
+        { "name": "bash", "cmd": "bash", "args": true },
         { "name": "open", "cmd": "open", "args": true },
-        { "name": "brew", "cmd": "/opt/homebrew/bin/brew", "args": true }
+        { "name": "brew", "cmd": "/opt/homebrew/bin/brew", "args": true },
+        { "name": "powershell", "cmd": "powershell", "args": true }
       ]
     },
     "http:default",

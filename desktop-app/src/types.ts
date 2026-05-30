@@ -49,6 +49,14 @@ export interface VirtualHost {
   active: boolean;
   ssl: boolean;
   type: string;
+  stack?: string;
+  php_version?: string;
+  port?: number;
+  autostart?: boolean;
+  database?: string;
+  mode?: string;
+  dev_command?: string;
+  dev_port?: number;
 }
 
 export interface ServicesStatus {

@@ -1,0 +1,9 @@
+{
+  "_comment": "Example app-config. The real app-config.json is generated per machine by the setup wizard and is gitignored. Paths are absolute and OS-specific. macOS example shown; on Windows use e.g. C:\\\\Users\\\\you\\\\localhost-manager\\\\scripts and the WAMP/Laragon Apache paths.",
+  "scripts_base_path": "/Users/you/localhost-manager/scripts",
+  "hosts_json_path": "/Users/you/localhost-manager/conf/hosts.json",
+  "apache_config_path": "/etc/apache2",
+  "apache_vhosts_path": "/etc/apache2/extra",
+  "ssl_certificates_path": "/Users/you/localhost-manager/certs",
+  "logs_path": "/Users/you/localhost-manager/logs"
+}

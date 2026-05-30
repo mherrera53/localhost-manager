@@ -123,3 +123,29 @@ export async function readFile(path: string): Promise<string> {
 export async function writeFile(path: string, content: string): Promise<void> {
   await invoke('write_file', { path, content });
 }
+
+// Backend service management
+export interface BackendService {
+  domain: string;
+  port: number;
+  pid: number | null;
+  status: string;
+  command: string;
+}
+
+export async function startBackendService(
+  domain: string,
+  path: string,
+  port: number,
+  command: string
+): Promise<BackendService> {
+  return await invoke<BackendService>('start_backend_service', { domain, path, port, command });
+}
+
+export async function stopBackendService(pid: number): Promise<void> {
+  await invoke('stop_backend_service', { pid });
+}
+
+export async function detectDevCommand(path: string): Promise<string> {
+  return await invoke<string>('detect_dev_command', { path });
+}

@@ -12,7 +12,7 @@ El proyecto ya está configurado para compilar instaladores de Windows. A contin
 
 1. **Hacer commit de todos los cambios:**
    ```bash
-   cd /Users/mario/localhost-manager
+   cd /Users/you/localhost-manager
    git add .
    git commit -m "feat: Windows support with cross-platform paths"
    git push origin main

@@ -6,12 +6,18 @@ import * as phpManager from './php-manager';
 import * as hosts from './hosts';
 import * as api from './api';
 import { initI18n, setLanguage } from './i18n';
+import { initConfigListeners } from './app-config';
+import { Command } from '@tauri-apps/plugin-shell';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 
 // ============================================
 // Initialize Application
 // ============================================
 
 function initializeEventListeners() {
+  // Initialize config listeners
+  initConfigListeners();
+  
   // Generate configs button
   document.getElementById('btn-generate-configs')?.addEventListener('click', () => {
     hosts.generateConfigs();
@@ -58,7 +64,12 @@ function initializeEventListeners() {
   });
 
   document.getElementById('btn-vscode')?.addEventListener('click', () => {
-    window.open('vscode://file/Users/mario/Sites/localhost', '_blank');
+    // Open the currently selected host's document root in VS Code (dynamic,
+    // no hardcoded user path).
+    const host = hosts.getCurrentHost();
+    if (host?.docroot) {
+      window.open(`vscode://file${host.docroot}`, '_blank');
+    }
   });
 
   document.getElementById('btn-backup')?.addEventListener('click', () => {
@@ -293,22 +304,16 @@ async function detectInstalledTerminals(): Promise<string[]> {
 
   const installed: string[] = [];
 
-  try {
-    const { Command } = await import('@tauri-apps/plugin-shell');
-
-    for (const term of terminals) {
-      try {
-        const cmd = Command.create('sh', ['-c', `[ -d "${term.path}" ] && echo "yes" || echo "no"`]);
-        const output = await cmd.execute();
-        if (output.stdout.trim() === 'yes') {
-          installed.push(term.name);
-        }
-      } catch {
-        // Ignore errors for individual checks
+  for (const term of terminals) {
+    try {
+      const cmd = Command.create('sh', ['-c', `[ -d "${term.path}" ] && echo "yes" || echo "no"`]);
+      const output = await cmd.execute();
+      if (output.stdout.trim() === 'yes') {
+        installed.push(term.name);
       }
+    } catch {
+      // Ignore errors for individual checks
     }
-  } catch (error) {
-    console.error('Error detecting terminals:', error);
   }
 
   // Always add Finder as fallback
@@ -356,8 +361,7 @@ async function showBackupConfigModal() {
   // Browse button handler
   newBrowseBtn?.addEventListener('click', async () => {
     try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({
+      const selected = await openDialog({
         directory: true,
         multiple: false,
         title: 'Select backup script or folder'
@@ -394,8 +398,6 @@ async function showBackupConfigModal() {
 
 async function executeBackup(path: string, app: string) {
   try {
-    const { Command } = await import('@tauri-apps/plugin-shell');
-
     console.log(`Opening ${path} with ${app}`);
 
     if (app === 'Finder') {
