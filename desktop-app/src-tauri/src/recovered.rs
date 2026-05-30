@@ -156,9 +156,15 @@ pub fn detect_dev_command(path: String) -> Result<String, String> {
     };
 
     if let Some(scripts) = json.get("scripts").and_then(|s| s.as_object()) {
-        for key in ["dev", "start", "serve"] {
+        // Prefer a "dev:fast" script when present (faster dev server).
+        for key in ["dev:fast", "dev", "start", "serve"] {
             if scripts.contains_key(key) {
-                return Ok(format!("{manager} run {key}"));
+                // yarn invokes scripts without "run" (e.g. `yarn dev:fast`).
+                return Ok(if manager == "yarn" {
+                    format!("yarn {key}")
+                } else {
+                    format!("{manager} run {key}")
+                });
             }
         }
     }
@@ -236,4 +242,52 @@ pub fn stop_backend_service(pid: u32) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Smart finder: probe common locations for installed server tooling and return
+/// best-guess paths to pre-fill the configuration form.
+#[tauri::command]
+pub fn detect_server_paths() -> PathsConfig {
+    let base = manager_dir();
+    let s = |p: PathBuf| p.to_string_lossy().to_string();
+
+    let first_existing = |candidates: &[&str]| -> String {
+        candidates
+            .iter()
+            .find(|p| std::path::Path::new(p).exists())
+            .map(|p| (*p).to_string())
+            .unwrap_or_default()
+    };
+
+    let apache_config = first_existing(&[
+        "/opt/homebrew/etc/httpd",
+        "/usr/local/etc/httpd",
+        "/etc/apache2",
+        "/Applications/MAMP/conf/apache",
+        "/Applications/XAMPP/etc",
+        "/Applications/XAMPP/xamppfiles/etc",
+        "C:\\xampp\\apache\\conf",
+        "C:\\wamp64\\bin\\apache",
+        "C:\\laragon\\bin\\apache",
+    ]);
+
+    let apache_vhosts = first_existing(&[
+        "/opt/homebrew/etc/httpd/extra",
+        "/usr/local/etc/httpd/extra",
+        "/etc/apache2/extra",
+        "/Applications/MAMP/conf/apache/extra",
+        "/Applications/XAMPP/etc/extra",
+        "/Applications/XAMPP/xamppfiles/etc/extra",
+        "C:\\xampp\\apache\\conf\\extra",
+        "C:\\laragon\\etc\\apache2\\sites-enabled",
+    ]);
+
+    PathsConfig {
+        scripts_base_path: s(base.join("scripts")),
+        hosts_json_path: s(base.join("conf").join("hosts.json")),
+        apache_config_path: apache_config,
+        apache_vhosts_path: apache_vhosts,
+        ssl_certificates_path: s(base.join("certs")),
+        logs_path: s(base.join("logs")),
+    }
 }

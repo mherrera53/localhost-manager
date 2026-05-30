@@ -8,8 +8,8 @@ mod types;
 use hosts_manager::*;
 use php_manager::*;
 use recovered::{
-    detect_dev_command, get_app_config, reset_app_config, save_app_config, start_backend_service,
-    stop_backend_service, validate_config_paths,
+    detect_dev_command, detect_server_paths, get_app_config, reset_app_config, save_app_config,
+    start_backend_service, stop_backend_service, validate_config_paths,
 };
 use system::*;
 use tauri::{
@@ -269,6 +269,7 @@ pub fn run() {
             reset_app_config,
             validate_config_paths,
             detect_dev_command,
+            detect_server_paths,
             start_backend_service,
             stop_backend_service,
         ])

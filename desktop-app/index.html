@@ -708,41 +708,62 @@
             
             <div class="mb-3">
               <label for="config-scripts-path" class="form-label fw-bold">Scripts Base Path</label>
-              <input type="text" class="form-control" id="config-scripts-path" placeholder="/path/to/scripts">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-scripts-path" placeholder="/path/to/scripts">
+                <button class="btn btn-outline-secondary" type="button" data-browse="config-scripts-path" title="Browse folder"><i class="ti ti-folder"></i></button>
+              </div>
               <small class="form-hint text-muted">Directory containing manage-backend.sh, switch-mode.sh, etc.</small>
             </div>
-            
+
             <div class="mb-3">
               <label for="config-hosts-json" class="form-label fw-bold">Hosts JSON Path</label>
-              <input type="text" class="form-control" id="config-hosts-json" placeholder="/path/to/hosts.json">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-hosts-json" placeholder="/path/to/hosts.json">
+                <button class="btn btn-outline-secondary" type="button" data-browse-file="config-hosts-json" title="Browse file"><i class="ti ti-file"></i></button>
+              </div>
               <small class="form-hint text-muted">Path to the hosts configuration file</small>
             </div>
-            
+
             <div class="mb-3">
               <label for="config-apache-path" class="form-label fw-bold">Apache Config Path</label>
-              <input type="text" class="form-control" id="config-apache-path" placeholder="/opt/homebrew/etc/httpd">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-apache-path" placeholder="/opt/homebrew/etc/httpd">
+                <button class="btn btn-outline-secondary" type="button" data-browse="config-apache-path" title="Browse folder"><i class="ti ti-folder"></i></button>
+              </div>
               <small class="form-hint text-muted">Apache configuration directory</small>
             </div>
-            
+
             <div class="mb-3">
               <label for="config-vhosts-path" class="form-label fw-bold">Apache VHosts Path</label>
-              <input type="text" class="form-control" id="config-vhosts-path" placeholder="/opt/homebrew/etc/httpd/vhosts">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-vhosts-path" placeholder="/opt/homebrew/etc/httpd/vhosts">
+                <button class="btn btn-outline-secondary" type="button" data-browse="config-vhosts-path" title="Browse folder"><i class="ti ti-folder"></i></button>
+              </div>
               <small class="form-hint text-muted">Directory for virtual host configuration files</small>
             </div>
-            
+
             <div class="mb-3">
               <label for="config-certs-path" class="form-label fw-bold">SSL Certificates Path</label>
-              <input type="text" class="form-control" id="config-certs-path" placeholder="/path/to/certs">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-certs-path" placeholder="/path/to/certs">
+                <button class="btn btn-outline-secondary" type="button" data-browse="config-certs-path" title="Browse folder"><i class="ti ti-folder"></i></button>
+              </div>
               <small class="form-hint text-muted">Directory for SSL certificates</small>
             </div>
-            
+
             <div class="mb-3">
               <label for="config-logs-path" class="form-label fw-bold">Logs Path</label>
-              <input type="text" class="form-control" id="config-logs-path" placeholder="/path/to/logs">
+              <div class="input-group">
+                <input type="text" class="form-control" id="config-logs-path" placeholder="/path/to/logs">
+                <button class="btn btn-outline-secondary" type="button" data-browse="config-logs-path" title="Browse folder"><i class="ti ti-folder"></i></button>
+              </div>
               <small class="form-hint text-muted">Directory for application logs</small>
             </div>
           </div>
           <div class="modal-footer">
+            <button type="button" class="btn btn-outline-info" id="btn-config-autodetect">
+              <i class="ti ti-search me-2"></i>Auto-detect
+            </button>
             <button type="button" class="btn btn-outline-warning" id="btn-config-reset">
               <i class="ti ti-refresh me-2"></i>Reset to Defaults
             </button>

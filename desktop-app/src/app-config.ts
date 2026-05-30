@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { showToast } from './ui';
 
 interface AppConfig {
@@ -90,6 +91,49 @@ async function loadAndPopulateConfig() {
 
 export function initConfigListeners() {
   document.getElementById('btn-settings')?.addEventListener('click', showConfigModal);
+
+  // Folder browse buttons (data-browse) and file browse buttons (data-browse-file)
+  document.querySelectorAll('[data-browse]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-browse');
+      if (!id) return;
+      const selected = await openDialog({ directory: true, multiple: false, title: 'Select folder' });
+      if (typeof selected === 'string') {
+        (document.getElementById(id) as HTMLInputElement).value = selected;
+      }
+    });
+  });
+  document.querySelectorAll('[data-browse-file]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-browse-file');
+      if (!id) return;
+      const selected = await openDialog({ directory: false, multiple: false, title: 'Select file' });
+      if (typeof selected === 'string') {
+        (document.getElementById(id) as HTMLInputElement).value = selected;
+      }
+    });
+  });
+
+  // Smart finder: auto-detect installed server paths
+  document.getElementById('btn-config-autodetect')?.addEventListener('click', async () => {
+    try {
+      const detected = await invoke<Partial<AppConfig>>('detect_server_paths');
+      const map: Record<string, string | undefined> = {
+        'config-scripts-path': detected.scripts_base_path,
+        'config-hosts-json': detected.hosts_json_path,
+        'config-apache-path': detected.apache_config_path,
+        'config-vhosts-path': detected.apache_vhosts_path,
+        'config-certs-path': detected.ssl_certificates_path,
+        'config-logs-path': detected.logs_path,
+      };
+      for (const [id, val] of Object.entries(map)) {
+        if (val) (document.getElementById(id) as HTMLInputElement).value = val;
+      }
+      showToast('Detected server paths', 'success');
+    } catch (error) {
+      showToast(`Auto-detect failed: ${error}`, 'error');
+    }
+  });
   
   document.getElementById('btn-config-save')?.addEventListener('click', async () => {
     const config: AppConfig = {
