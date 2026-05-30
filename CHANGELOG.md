@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.1
+
+### Fixed
+- **Idempotent setup**: `create_initial_config` (the setup wizard) now creates
+  `hosts.json` only if it does not already exist, so re-running the wizard or a
+  clean reinstall never wipes an existing host configuration.
+
+### Signing
+- macOS release `.dmg`/`.app` are now signed with Developer ID, notarized and
+  stapled (both the app and the dmg) via CI.
+
 ## v1.0.0
 
 First stable release. Cross-platform, hardened and portable.
