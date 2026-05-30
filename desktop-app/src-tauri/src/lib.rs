@@ -1,11 +1,16 @@
 mod config;
 mod hosts_manager;
+mod migration;
 mod php_manager;
 mod recovered;
 mod system;
 mod types;
 
 use hosts_manager::*;
+use migration::{
+    apply_candidates, export_hosts_bundle, import_hosts_bundle, migrate_from_apache,
+    migrate_from_docker, migrate_from_nginx, migrate_from_valet, preview_import,
+};
 use php_manager::*;
 use recovered::{
     detect_dev_command, detect_server_paths, get_app_config, reset_app_config, save_app_config,
@@ -272,6 +277,15 @@ pub fn run() {
             detect_server_paths,
             start_backend_service,
             stop_backend_service,
+            // Config sharing + smart migration (v1.1.0)
+            export_hosts_bundle,
+            import_hosts_bundle,
+            preview_import,
+            migrate_from_docker,
+            migrate_from_apache,
+            migrate_from_valet,
+            migrate_from_nginx,
+            apply_candidates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

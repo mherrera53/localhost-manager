@@ -7,6 +7,7 @@ import * as hosts from './hosts';
 import * as api from './api';
 import { initI18n, setLanguage } from './i18n';
 import { initConfigListeners } from './app-config';
+import { initMigrationListeners } from './migration';
 import { Command } from '@tauri-apps/plugin-shell';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 
@@ -17,6 +18,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 function initializeEventListeners() {
   // Initialize config listeners
   initConfigListeners();
+  initMigrationListeners();
   
   // Generate configs button
   document.getElementById('btn-generate-configs')?.addEventListener('click', () => {
