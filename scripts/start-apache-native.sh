@@ -2,25 +2,13 @@
 # Use system Apache, not MAMP
 export PATH="/usr/sbin:/usr/bin:/bin:/sbin:$PATH"
 
+# Start macOS native Apache.
+# Elevation is requested via osascript (Touch ID / GUI prompt) -- we never
+# store or pipe a sudo password. Binding to ports 80/443 requires root.
 
-# Iniciar Apache nativo de macOS
-
-SUDO_PASSWORD=$(security find-generic-password -a "$USER" -s "localhost-manager-sudo" -w 2>/dev/null)
-
-if [ -z "$SUDO_PASSWORD" ]; then
-    echo "⚠️  Password no encontrado en Keychain."
-    exit 1
-fi
-
-echo "Iniciando Apache nativo de macOS..."
-echo "$SUDO_PASSWORD" | sudo -S /usr/sbin/apachectl start 2>&1
-
-if [ $? -eq 0 ]; then
-    echo "✓ Apache iniciado"
+echo "Starting native macOS Apache..."
+if osascript -e 'do shell script "/usr/sbin/apachectl start" with administrator privileges' 2>&1; then
+    echo "[OK] Apache started"
 else
-    echo "ℹ️  Apache ya está corriendo o hubo un error"
+    echo "[i]  Apache already running or could not be started"
 fi
-
-echo ""
-echo "Verificando estado..."
-echo "$SUDO_PASSWORD" | sudo -S /usr/sbin/apachectl status 2>&1 | head -3

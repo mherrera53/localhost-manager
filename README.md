@@ -106,7 +106,7 @@ Este script:
 2. Completa los campos:
    - **Dominio**: `midominio.local`
    - **Alias** (opcional): `www.midominio.local`
-   - **Document Root**: `/Users/mario/Sites/localhost/midominio.local`
+   - **Document Root**: `/Users/you/Sites/localhost/midominio.local`
 3. Click en "Agregar Dominio"
 4. Genera el certificado SSL para el dominio
 5. Regenera la configuración de Apache
@@ -129,7 +129,7 @@ Este script:
 │   └── update-hosts.sh
 └── README.md
 
-/Users/mario/Sites/localhost/
+/Users/you/Sites/localhost/
 └── manager/                  # Interfaz web
     └── index.php
 ```

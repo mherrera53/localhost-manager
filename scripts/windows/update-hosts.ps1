@@ -74,13 +74,14 @@ foreach ($prop in $hosts.PSObject.Properties) {
     $activeCount++
     $line = "127.0.0.1    $domain"
 
-    # Add active aliases
+    # Aliases follow the parent: the domain is active, so map ALL its aliases
+    # to 127.0.0.1 too. The per-alias "active" flag is ignored on purpose.
     if ($config.aliases) {
         foreach ($alias in $config.aliases) {
             if ($alias -is [string] -and $alias.Trim()) {
                 $line += "    $($alias.Trim())"
             }
-            elseif ($alias.value -and $alias.active -ne $false) {
+            elseif ($alias.value) {
                 $line += "    $($alias.value.Trim())"
             }
         }

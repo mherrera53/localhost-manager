@@ -13,6 +13,12 @@ certs/
 
 # Configuration files with sensitive data
 conf/hosts.json
+
+# Machine-specific config (absolute paths) - generated per install, never commit
+app-config.json
+/app-config.json
+conf/settings.json
+services/*.pid
 conf/hosts.txt
 conf/vhosts.conf
 

@@ -3,13 +3,36 @@
 // ============================================
 
 import { Command, open as openUrl } from "@tauri-apps/plugin-shell";
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { open as openDialog, ask } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 import Sortable from 'sortablejs';
 import { showToast } from './ui';
 import * as api from './api';
 import type { ApacheAction, VirtualHost, ServicesStatus } from './types';
 
-const SCRIPTS_PATH = '/Users/mario/localhost-manager/scripts';
+// Resolved at runtime from the per-machine app-config (no hardcoded path).
+let SCRIPTS_PATH = '';
+// Platform flag: macOS/Linux run bash .sh scripts; Windows runs PowerShell .ps1
+// scripts under scripts/windows/. The Windows path is BETA / untested.
+let IS_WINDOWS = false;
+
+// Load scripts path + platform from the backend
+async function loadScriptsPath() {
+  try {
+    const config: any = await invoke('get_app_config');
+    SCRIPTS_PATH = config.scripts_base_path;
+  } catch (error) {
+    console.error('Failed to load config; scripts path is unset:', error);
+  }
+  try {
+    const info: any = await invoke('detect_platform');
+    IS_WINDOWS = String(info?.os ?? '').toLowerCase().includes('windows');
+  } catch (error) {
+    // Default to non-Windows (bash) if platform detection is unavailable
+  }
+}
+
+loadScriptsPath();
 
 // Stack configuration
 interface StackConfig {
@@ -417,13 +440,60 @@ function selectHost(domain: string, linkElement: HTMLElement) {
   if (selectedHostTitle) selectedHostTitle.textContent = domain;
 
   // Populate details
-  const detailDomain = document.getElementById('detail-domain');
+  const detailDomain = document.getElementById('detail-domain') as HTMLInputElement;
   const detailDocroot = document.getElementById('detail-docroot') as HTMLInputElement;
   const detailGroup = document.getElementById('detail-group') as HTMLSelectElement;
   const detailStatus = document.getElementById('detail-status');
   const detailSsl = document.getElementById('detail-ssl');
+  const btnRenameHost = document.getElementById('btn-rename-host');
 
-  if (detailDomain) detailDomain.textContent = domain;
+  // Domain editable input
+  if (detailDomain) {
+    detailDomain.value = domain;
+    // Store original domain for rename
+    detailDomain.dataset.originalDomain = domain;
+  }
+
+  // Rename host button
+  if (btnRenameHost) {
+    const newBtn = btnRenameHost.cloneNode(true) as HTMLButtonElement;
+    btnRenameHost.parentNode?.replaceChild(newBtn, btnRenameHost);
+
+    newBtn.addEventListener('click', async () => {
+      const originalDomain = detailDomain?.dataset.originalDomain;
+      const newDomain = detailDomain?.value.trim();
+
+      if (!originalDomain || !newDomain || originalDomain === newDomain) {
+        return;
+      }
+
+      if (virtualHosts[newDomain]) {
+        showToast(`Domain ${newDomain} already exists`, 'error');
+        return;
+      }
+
+      try {
+        // Create new host with new domain name
+        const hostData = { ...virtualHosts[originalDomain] };
+        virtualHosts[newDomain] = hostData;
+        delete virtualHosts[originalDomain];
+
+        await api.saveVirtualHosts(virtualHosts);
+        renderSidebarHosts();
+
+        // Re-select the renamed host
+        setTimeout(() => {
+          const hostLink = document.querySelector(`.host-link[data-domain="${newDomain}"]`) as HTMLElement;
+          if (hostLink) selectHost(newDomain, hostLink);
+        }, 100);
+
+        showToast(`Host renamed to ${newDomain}`, 'success');
+      } catch (error) {
+        console.error('Error renaming host:', error);
+        showToast('Failed to rename host', 'error');
+      }
+    });
+  }
 
   // Docroot editable input
   if (detailDocroot) {
@@ -432,9 +502,17 @@ function selectHost(domain: string, linkElement: HTMLElement) {
     const newDocroot = detailDocroot.cloneNode(true) as HTMLInputElement;
     detailDocroot.parentNode?.replaceChild(newDocroot, detailDocroot);
 
-    newDocroot.addEventListener('change', async () => {
-      await updateHostField(domain, 'docroot', newDocroot.value);
-    });
+    // Save on change or blur
+    const saveDocroot = async () => {
+      const newValue = newDocroot.value.trim();
+      if (newValue && newValue !== host.docroot) {
+        await updateHostField(domain, 'docroot', newValue);
+        showToast('Document root updated', 'success');
+      }
+    };
+
+    newDocroot.addEventListener('change', saveDocroot);
+    newDocroot.addEventListener('blur', saveDocroot);
   }
 
   // Group editable select - populate with all groups
@@ -477,6 +555,157 @@ function selectHost(domain: string, linkElement: HTMLElement) {
 
   if (detailSsl) {
     detailSsl.style.display = host.ssl ? 'inline-block' : 'none';
+  }
+
+  // === Development Server fields ===
+
+  // Type select
+  const detailType = document.getElementById('detail-type') as HTMLSelectElement;
+  if (detailType) {
+    const newType = detailType.cloneNode(true) as HTMLSelectElement;
+    detailType.parentNode?.replaceChild(newType, detailType);
+    newType.value = host.type || 'static';
+    newType.addEventListener('change', () => updateHostField(domain, 'type', newType.value));
+  }
+
+  // Stack select
+  const detailStack = document.getElementById('detail-stack') as HTMLSelectElement;
+  if (detailStack) {
+    const newStack = detailStack.cloneNode(true) as HTMLSelectElement;
+    detailStack.parentNode?.replaceChild(newStack, detailStack);
+    newStack.value = host.stack || 'frontend';
+    newStack.addEventListener('change', () => updateHostField(domain, 'stack', newStack.value));
+  }
+
+  // Port input
+  const detailPort = document.getElementById('detail-port') as HTMLInputElement;
+  if (detailPort) {
+    const newPort = detailPort.cloneNode(true) as HTMLInputElement;
+    detailPort.parentNode?.replaceChild(newPort, detailPort);
+    newPort.value = host.port ? String(host.port) : '';
+
+    const savePort = () => {
+      const val = newPort.value.trim();
+      const portNum = val ? parseInt(val, 10) : null;
+      updateHostField(domain, 'port', portNum);
+    };
+    newPort.addEventListener('change', savePort);
+    newPort.addEventListener('blur', savePort);
+  }
+
+  // Clear port button
+  const btnClearPort = document.getElementById('btn-clear-port');
+  if (btnClearPort) {
+    const newClearBtn = btnClearPort.cloneNode(true) as HTMLButtonElement;
+    btnClearPort.parentNode?.replaceChild(newClearBtn, btnClearPort);
+    newClearBtn.addEventListener('click', () => {
+      const portInput = document.getElementById('detail-port') as HTMLInputElement;
+      if (portInput) portInput.value = '';
+      updateHostField(domain, 'port', null);
+    });
+  }
+
+  // Dev Command - parse "npm run dev" into pkg="npm", cmd="run dev"
+  const detailPkgManager = document.getElementById('detail-pkg-manager') as HTMLSelectElement;
+  const detailDevCommand = document.getElementById('detail-dev-command') as HTMLInputElement;
+  if (detailPkgManager && detailDevCommand) {
+    const devCmd = host.dev_command || '';
+    const parts = devCmd.split(/\s+/);
+    const knownPkgManagers = ['npm', 'yarn', 'pnpm'];
+    let pkg = 'npm';
+    let cmd = devCmd;
+    if (parts.length > 0 && knownPkgManagers.includes(parts[0])) {
+      pkg = parts[0];
+      cmd = parts.slice(1).join(' ');
+    }
+
+    const newPkg = detailPkgManager.cloneNode(true) as HTMLSelectElement;
+    detailPkgManager.parentNode?.replaceChild(newPkg, detailPkgManager);
+    newPkg.value = pkg;
+
+    const newCmd = detailDevCommand.cloneNode(true) as HTMLInputElement;
+    detailDevCommand.parentNode?.replaceChild(newCmd, detailDevCommand);
+    newCmd.value = cmd;
+
+    const saveDevCommand = () => {
+      const cmdVal = newCmd.value.trim();
+      const fullCmd = cmdVal ? `${newPkg.value} ${cmdVal}` : '';
+      updateHostField(domain, 'dev_command', fullCmd);
+    };
+
+    newPkg.addEventListener('change', saveDevCommand);
+    newCmd.addEventListener('change', saveDevCommand);
+    newCmd.addEventListener('blur', saveDevCommand);
+  }
+
+  // Autostart toggle
+  const detailAutostart = document.getElementById('detail-autostart') as HTMLInputElement;
+  if (detailAutostart) {
+    const newAutostart = detailAutostart.cloneNode(true) as HTMLInputElement;
+    detailAutostart.parentNode?.replaceChild(newAutostart, detailAutostart);
+    newAutostart.checked = host.autostart || false;
+    newAutostart.addEventListener('change', () => updateHostField(domain, 'autostart', newAutostart.checked));
+  }
+
+  // Auto-detect dev command button
+  const btnDetectCommand = document.getElementById('btn-detect-command');
+  if (btnDetectCommand) {
+    const newDetectBtn = btnDetectCommand.cloneNode(true) as HTMLButtonElement;
+    btnDetectCommand.parentNode?.replaceChild(newDetectBtn, btnDetectCommand);
+    newDetectBtn.addEventListener('click', async () => {
+      try {
+        const detected = await api.detectDevCommand(host.docroot);
+        if (detected) {
+          const parts = detected.split(/\s+/);
+          const knownPkgManagers = ['npm', 'yarn', 'pnpm'];
+          const pkgEl = document.getElementById('detail-pkg-manager') as HTMLSelectElement;
+          const cmdEl = document.getElementById('detail-dev-command') as HTMLInputElement;
+          if (pkgEl && cmdEl) {
+            if (knownPkgManagers.includes(parts[0])) {
+              pkgEl.value = parts[0];
+              cmdEl.value = parts.slice(1).join(' ');
+            } else {
+              cmdEl.value = detected;
+            }
+            await updateHostField(domain, 'dev_command', detected);
+          }
+          showToast(`Detected: ${detected}`, 'success');
+        } else {
+          showToast('Could not detect dev command', 'warning');
+        }
+      } catch (error) {
+        console.error('Error detecting dev command:', error);
+        showToast('Failed to detect dev command', 'error');
+      }
+    });
+  }
+
+  // Start/Stop dev server button
+  const btnStartDevserver = document.getElementById('btn-start-devserver');
+  if (btnStartDevserver) {
+    const newStartBtn = btnStartDevserver.cloneNode(true) as HTMLButtonElement;
+    btnStartDevserver.parentNode?.replaceChild(newStartBtn, btnStartDevserver);
+    newStartBtn.addEventListener('click', async () => {
+      const pkgEl = document.getElementById('detail-pkg-manager') as HTMLSelectElement;
+      const cmdEl = document.getElementById('detail-dev-command') as HTMLInputElement;
+      const portEl = document.getElementById('detail-port') as HTMLInputElement;
+
+      const fullCommand = pkgEl && cmdEl ? `${pkgEl.value} ${cmdEl.value}`.trim() : '';
+      const port = portEl?.value ? parseInt(portEl.value, 10) : 3000;
+
+      if (!fullCommand) {
+        showToast('No dev command configured', 'warning');
+        return;
+      }
+
+      try {
+        const result = await api.startBackendService(domain, host.docroot, port, fullCommand);
+        showToast(`Dev server started (PID: ${result.pid})`, 'success');
+      } catch (error) {
+        console.error('Error starting dev server:', error);
+        showToast(`Failed to start dev server: ${error}`, 'error');
+      }
+    });
   }
 
   // Render aliases with remove buttons
@@ -543,8 +772,36 @@ async function toggleHostActive(domain: string, active: boolean) {
 
     host.active = active;
 
+    // Aliases follow the parent: cascade the active state to all of them so the
+    // stored data and the sidebar/panel chips stay consistent with the domain.
+    if (Array.isArray(host.aliases)) {
+      host.aliases = host.aliases.map((a: any) =>
+        typeof a === 'string' ? a : { ...a, active }
+      ) as any;
+    }
+
     // Save to backend
     await api.saveVirtualHosts(virtualHosts);
+
+    // Auto start/stop dev server if it's a backend project (macOS/Linux only;
+    // Windows backend autostart is not wired yet).
+    if (host.stack === 'backend' && !IS_WINDOWS) {
+      const action = active ? 'start' : 'stop';
+      const scriptPath = `${SCRIPTS_PATH}/manage-backend.sh`;
+
+      try {
+        const command = Command.create('bash', [scriptPath, action, domain]);
+        const output = await command.execute();
+        
+        if (output.code === 0) {
+          showToast(`Dev server ${active ? 'started' : 'stopped'} for ${domain}`, 'success');
+        } else {
+          console.error(`Failed to ${action} dev server:`, output.stderr);
+        }
+      } catch (err) {
+        console.error(`Error managing dev server:`, err);
+      }
+    }
 
     // Update UI
     const detailStatus = document.getElementById('detail-status');
@@ -557,6 +814,27 @@ async function toggleHostActive(domain: string, active: boolean) {
     renderSidebarHosts();
 
     showToast(`Host ${active ? 'activated' : 'deactivated'}`, 'success');
+    
+    // Auto-regenerate Apache configs to reflect the change
+    try {
+      showToast('Updating configuration...', 'warning');
+
+      // macOS/Linux: elevate once via osascript (Touch ID). Windows (BETA):
+      // elevate via UAC and run the PowerShell hosts update.
+      const applyCmd = IS_WINDOWS
+        ? Command.create('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
+            `Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${SCRIPTS_PATH}\\windows\\update-hosts.ps1'`
+          ])
+        : Command.create('sh', ['-c',
+            `osascript -e 'do shell script "bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh" with administrator privileges'`
+          ]);
+      await applyCmd.execute();
+      
+      showToast('Configuration updated successfully!', 'success');
+    } catch (err) {
+      console.error('Error regenerating configs:', err);
+      showToast('Failed to update configuration', 'error');
+    }
   } catch (error) {
     console.error('Error toggling host:', error);
     showToast('Failed to update host status', 'error');
@@ -668,42 +946,87 @@ export async function renameDomain() {
   }
 
   const oldDomain = currentHost.domain;
-  const newDomain = prompt(`Rename domain "${oldDomain}" to:`, oldDomain);
 
-  if (!newDomain || newDomain.trim() === '' || newDomain.trim() === oldDomain) {
+  // Show rename modal
+  const modalEl = document.getElementById('renameModal');
+  const input = document.getElementById('rename-domain-input') as HTMLInputElement;
+  const btnConfirm = document.getElementById('btn-confirm-rename');
+
+  if (!modalEl || !input || !btnConfirm) {
+    showToast('Rename modal not found', 'error');
     return;
   }
 
-  const trimmedNewDomain = newDomain.trim();
+  // Set current value
+  input.value = oldDomain;
 
-  // Check if new domain already exists
-  if (virtualHosts[trimmedNewDomain]) {
-    showToast('Domain already exists', 'error');
-    return;
-  }
+  // Show modal
+  const modal = new (window as any).bootstrap.Modal(modalEl);
+  modal.show();
 
-  try {
-    // Copy host with new domain
-    virtualHosts[trimmedNewDomain] = { ...virtualHosts[oldDomain] };
+  // Focus input after modal is shown
+  modalEl.addEventListener('shown.bs.modal', () => {
+    input.focus();
+    input.select();
+  }, { once: true });
 
-    // Delete old domain
-    delete virtualHosts[oldDomain];
+  // Handle confirm button
+  const handleConfirm = async () => {
+    const newDomain = input.value.trim();
 
-    // Save changes
-    await api.saveVirtualHosts(virtualHosts);
+    if (!newDomain || newDomain === oldDomain) {
+      modal.hide();
+      return;
+    }
 
-    showToast(`Domain renamed from "${oldDomain}" to "${trimmedNewDomain}". Remember to generate configs!`, 'success');
+    // Check if new domain already exists
+    if (virtualHosts[newDomain]) {
+      showToast('Domain already exists', 'error');
+      return;
+    }
 
-    // Refresh sidebar and select new host
-    renderSidebarHosts();
-    setTimeout(() => {
-      const hostLink = document.querySelector(`.host-link[data-domain="${trimmedNewDomain}"]`) as HTMLElement;
-      if (hostLink) selectHost(trimmedNewDomain, hostLink);
-    }, 100);
-  } catch (error) {
-    console.error('Error renaming domain:', error);
-    showToast('Failed to rename domain', 'error');
-  }
+    try {
+      // Copy host with new domain
+      virtualHosts[newDomain] = { ...virtualHosts[oldDomain] };
+
+      // Delete old domain
+      delete virtualHosts[oldDomain];
+
+      // Save changes
+      await api.saveVirtualHosts(virtualHosts);
+
+      modal.hide();
+      showToast(`Domain renamed to "${newDomain}". Remember to generate configs!`, 'success');
+
+      // Refresh sidebar and select new host
+      renderSidebarHosts();
+      setTimeout(() => {
+        const hostLink = document.querySelector(`.host-link[data-domain="${newDomain}"]`) as HTMLElement;
+        if (hostLink) selectHost(newDomain, hostLink);
+      }, 100);
+    } catch (error) {
+      console.error('Error renaming domain:', error);
+      showToast('Failed to rename domain', 'error');
+    }
+  };
+
+  // Remove previous listeners and add new one
+  const newBtn = btnConfirm.cloneNode(true) as HTMLButtonElement;
+  btnConfirm.parentNode?.replaceChild(newBtn, btnConfirm);
+  newBtn.addEventListener('click', handleConfirm);
+
+  // Handle Enter key
+  const handleEnter = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleConfirm();
+    }
+  };
+  input.addEventListener('keypress', handleEnter);
+
+  // Cleanup on modal hide
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    input.removeEventListener('keypress', handleEnter);
+  }, { once: true });
 }
 
 export async function deleteCurrentHost() {
@@ -714,7 +1037,12 @@ export async function deleteCurrentHost() {
 
   const domain = currentHost.domain;
 
-  if (!confirm(`Are you sure you want to delete "${domain}"? This action cannot be undone.`)) {
+  const confirmed = await ask(`Are you sure you want to delete "${domain}"? This action cannot be undone.`, {
+    title: 'Delete Host',
+    kind: 'warning'
+  });
+
+  if (!confirmed) {
     return;
   }
 
@@ -803,8 +1131,11 @@ function updateServicesUI() {
 
 export async function executeApacheCommand(action: ApacheAction) {
   try {
-    const scriptPath = `${SCRIPTS_PATH}/${action}-apache-native.sh`;
-    const command = Command.create('bash', [scriptPath]);
+    // macOS/Linux: bash <action>-apache-native.sh. Windows (BETA): the
+    // matching PowerShell script under scripts/windows/.
+    const command = IS_WINDOWS
+      ? Command.create('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', `${SCRIPTS_PATH}\\windows\\${action}-apache.ps1`])
+      : Command.create('bash', [`${SCRIPTS_PATH}/${action}-apache-native.sh`]);
 
     const actionVerb = action.charAt(0).toUpperCase() + action.slice(1);
     showToast(`${actionVerb}ing Apache...`, 'warning');
@@ -826,20 +1157,27 @@ export async function executeApacheCommand(action: ApacheAction) {
 
 export async function generateConfigs() {
   try {
-    showToast('Generating and applying configurations...', 'warning');
+    showToast('Configuring everything automatically...', 'warning');
 
-    // generateConfigs() already includes install.sh execution
-    const genResult = await api.generateConfigs();
-    console.log('Generate result:', genResult);
+    // Run the master setup script that does EVERYTHING
+    const scriptPath = `${SCRIPTS_PATH}/setup-all.sh`;
+    const command = Command.create('bash', [scriptPath]);
+    const output = await command.execute();
 
-    showToast('Configurations applied successfully!', 'success');
+    if (output.code === 0) {
+      showToast('All configurations applied successfully!', 'success');
+      console.log('Setup output:', output.stdout);
+    } else {
+      showToast('Setup completed with warnings', 'warning');
+      console.error('Setup stderr:', output.stderr);
+    }
 
     // Reload hosts and services after generation
     await loadVirtualHosts();
     await loadServicesStatus();
   } catch (error) {
-    console.error('Error generating/applying configs:', error);
-    showToast(`Failed: ${error}`, 'error');
+    console.error('Error during setup:', error);
+    showToast(`Setup failed: ${error}`, 'error');
   }
 }
 
@@ -849,16 +1187,38 @@ export async function toggleServices() {
   try {
     showToast(`${action === 'start' ? 'Starting' : 'Stopping'} services...`, 'warning');
 
-    // Detect installed services dynamically
-    const detectCmd = Command.create('sh', ['-c', '/opt/homebrew/bin/brew services list | grep -E "httpd|mysql|php" | awk \'{print $1}\'']);
-    const detectOutput = await detectCmd.execute();
+    let services: string[] = [];
 
-    let services = ['httpd', 'mysql', 'php']; // defaults
-    if (detectOutput.code === 0 && detectOutput.stdout) {
-      const detected = detectOutput.stdout.trim().split('\n').filter(s => s);
-      if (detected.length > 0) {
-        services = detected;
+    if (action === 'stop') {
+      // For stop: only get currently running services
+      const detectCmd = Command.create('sh', ['-c', '/opt/homebrew/bin/brew services list | grep -E "httpd|mysql|php" | grep "started" | awk \'{print $1}\'']);
+      const detectOutput = await detectCmd.execute();
+      if (detectOutput.code === 0 && detectOutput.stdout) {
+        services = detectOutput.stdout.trim().split('\n').filter(s => s);
       }
+    } else {
+      // For start: get services that are stopped (none status) - prefer versioned ones
+      const detectCmd = Command.create('sh', ['-c', '/opt/homebrew/bin/brew services list | grep -E "httpd|mysql@|php@" | grep "none" | awk \'{print $1}\' | sort -r']);
+      const detectOutput = await detectCmd.execute();
+      if (detectOutput.code === 0 && detectOutput.stdout) {
+        const all = detectOutput.stdout.trim().split('\n').filter(s => s);
+        // Pick one mysql and one php (highest version due to sort -r)
+        const mysql = all.find(s => s.startsWith('mysql@'));
+        const php = all.find(s => s.startsWith('php@'));
+        const httpd = all.find(s => s === 'httpd');
+        if (mysql) services.push(mysql);
+        if (php) services.push(php);
+        if (httpd) services.push(httpd);
+      }
+      // Fallback defaults if nothing detected
+      if (services.length === 0) {
+        services = ['mysql@8.4', 'php@8.3'];
+      }
+    }
+
+    if (services.length === 0) {
+      showToast('No services to toggle', 'warning');
+      return;
     }
 
     // Build command with detected services

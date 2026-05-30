@@ -43,7 +43,7 @@ pub fn run() {
                             let active = host.get("active").and_then(|v| v.as_bool()).unwrap_or(false);
                             let status = if active { "✓" } else { "✗" };
                             let label = format!("{} {}", status, name);
-                            let item = MenuItem::with_id(app, &format!("toggle_host_{}", name), &label, true, None::<&str>)?;
+                            let item = MenuItem::with_id(app, format!("toggle_host_{}", name), &label, true, None::<&str>)?;
                             host_items.push(item);
                         }
                     }

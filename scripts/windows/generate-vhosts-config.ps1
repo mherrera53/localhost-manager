@@ -103,14 +103,15 @@ foreach ($prop in $hosts.PSObject.Properties) {
         $docroot = $docroot -replace "/", "\"
     }
 
-    # Build aliases list
+    # Build aliases list. Aliases follow the parent: this domain is active, so
+    # serve ALL its aliases. The per-alias "active" flag is ignored on purpose.
     $aliases = @()
     if ($config.aliases) {
         foreach ($alias in $config.aliases) {
             if ($alias -is [string] -and $alias.Trim()) {
                 $aliases += $alias.Trim()
             }
-            elseif ($alias.value -and $alias.active -ne $false) {
+            elseif ($alias.value) {
                 $aliases += $alias.value.Trim()
             }
         }

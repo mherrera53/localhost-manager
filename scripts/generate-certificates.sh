@@ -115,6 +115,31 @@ cert_is_signed_by_ca() {
     [[ "$issuer" == *"$CA_NAME"* ]]
 }
 
+# Check if certificate already covers EVERY required DNS name (SAN).
+# Returns 1 (false) if any required name is missing -> cert must be regenerated.
+# This is what makes newly-added aliases take effect without manually deleting certs.
+cert_covers_sans() {
+    local cert_file="$1"
+    local required_dns="$2"   # comma-separated DNS names, no "DNS:" prefix
+
+    [ ! -f "$cert_file" ] && return 1
+
+    local current_sans
+    current_sans=$(openssl x509 -in "$cert_file" -noout -ext subjectAltName 2>/dev/null \
+        | grep -o "DNS:[^,]*" | sed 's/DNS://g' | tr -d ' ')
+    [ -z "$current_sans" ] && return 1
+
+    local name
+    IFS=',' read -ra REQ <<< "$required_dns"
+    for name in "${REQ[@]}"; do
+        name=$(echo "$name" | xargs 2>/dev/null || echo "$name")
+        [ -z "$name" ] && continue
+        # -x whole line, -F fixed string (so the '*' in *.domain is literal)
+        grep -qxF "$name" <<< "$current_sans" || return 1
+    done
+    return 0
+}
+
 # Generate a certificate signed by Root CA
 generate_signed_cert() {
     local domain="$1"
@@ -124,26 +149,35 @@ generate_signed_cert() {
     local csr_file="$CERT_DIR/${domain}.csr"
     local ext_file="$CERT_DIR/${domain}.ext"
 
-    # Check if certificate is valid AND signed by our CA
-    if cert_is_valid "$cert_file" && cert_is_signed_by_ca "$cert_file"; then
+    # Build the list of required DNS names: domain + aliases + wildcard
+    local required_dns="${domain}"
+    if [ -n "$san_list" ]; then
+        IFS=',' read -ra SANS <<< "$san_list"
+        for san in "${SANS[@]}"; do
+            san=$(echo "$san" | xargs 2>/dev/null || echo "$san")
+            [ -n "$san" ] && required_dns="${required_dns},${san}"
+        done
+    fi
+    required_dns="${required_dns},*.${domain}"
+
+    # Skip ONLY if cert is valid, signed by our CA, AND already covers every
+    # required SAN. If an alias was added in the panel, the SAN is stale and we
+    # fall through to regenerate it automatically.
+    if cert_is_valid "$cert_file" \
+        && cert_is_signed_by_ca "$cert_file" \
+        && cert_covers_sans "$cert_file" "$required_dns"; then
         echo -e "  ${YELLOW}⊘${NC} $domain (valid, skipped)"
         ((SKIPPED++))
         return 0
     fi
 
-    # Build SAN string
-    local san_string="DNS:${domain}"
-
-    if [ -n "$san_list" ]; then
-        IFS=',' read -ra SANS <<< "$san_list"
-        for san in "${SANS[@]}"; do
-            san=$(echo "$san" | xargs 2>/dev/null || echo "$san")
-            [ -n "$san" ] && san_string="${san_string},DNS:${san}"
-        done
-    fi
-
-    # Add wildcard and IP
-    san_string="${san_string},DNS:*.${domain},IP:127.0.0.1"
+    # Build the openssl SAN string from the required DNS names + loopback IP
+    local san_string="" name
+    IFS=',' read -ra DNSNAMES <<< "$required_dns"
+    for name in "${DNSNAMES[@]}"; do
+        [ -n "$name" ] && san_string="${san_string}${san_string:+,}DNS:${name}"
+    done
+    san_string="${san_string},IP:127.0.0.1"
 
     # Generate private key
     openssl genrsa -out "$key_file" 2048 2>/dev/null
@@ -186,19 +220,19 @@ EOF
     fi
 }
 
-# Parse JSON using jq or python
+# Parse JSON using jq or python - skip backend projects
 get_active_domains() {
     local json_file="$1"
 
     if command -v jq &> /dev/null; then
-        jq -r 'to_entries | .[] | select(.value.active == true or .value.active == null) | .key' "$json_file" 2>/dev/null
+        jq -r 'to_entries | .[] | select(.value.active == true or .value.active == null) | select(.value.stack != "backend") | .key' "$json_file" 2>/dev/null
     elif command -v python3 &> /dev/null; then
         python3 -c "
 import json
 with open('$json_file') as f:
     data = json.load(f)
 for domain, config in data.items():
-    if config.get('active', True):
+    if config.get('active', True) and config.get('stack', 'frontend') != 'backend':
         print(domain)
 " 2>/dev/null
     else
@@ -210,12 +244,16 @@ get_domain_aliases() {
     local json_file="$1"
     local domain="$2"
 
+    # Parent-driven: include ALL alias values. The parent domain is already
+    # filtered to active by get_active_domains, so per-alias "active" is ignored.
     if command -v jq &> /dev/null; then
         jq -r ".[\"$domain\"].aliases // [] |
             if type == \"array\" then
                 map(if type == \"string\" then .
-                    elif type == \"object\" and (.active == true or .active == null) then .value
-                    else empty end) | join(\",\")
+                    elif type == \"object\" then .value
+                    else empty end)
+                | map(select(. != null and . != \"\"))
+                | join(\",\")
             else \"\" end" "$json_file" 2>/dev/null
     elif command -v python3 &> /dev/null; then
         python3 -c "
@@ -227,7 +265,7 @@ result = []
 for a in aliases:
     if isinstance(a, str) and a:
         result.append(a)
-    elif isinstance(a, dict) and a.get('active', True) and a.get('value'):
+    elif isinstance(a, dict) and a.get('value'):
         result.append(a['value'])
 print(','.join(result))
 " 2>/dev/null
