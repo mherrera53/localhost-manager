@@ -1,11 +1,16 @@
 mod config;
 mod hosts_manager;
 mod php_manager;
+mod recovered;
 mod system;
 mod types;
 
 use hosts_manager::*;
 use php_manager::*;
+use recovered::{
+    detect_dev_command, get_app_config, reset_app_config, save_app_config, start_backend_service,
+    stop_backend_service, validate_config_paths,
+};
 use system::*;
 use tauri::{
     menu::{Menu, MenuItem, Submenu},
@@ -258,6 +263,14 @@ pub fn run() {
             change_mysql_root_password,
             create_mysql_user,
             delete_mysql_user,
+            // App paths config + dev services (re-implemented to match frontend)
+            get_app_config,
+            save_app_config,
+            reset_app_config,
+            validate_config_paths,
+            detect_dev_command,
+            start_backend_service,
+            stop_backend_service,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
