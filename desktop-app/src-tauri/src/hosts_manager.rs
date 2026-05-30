@@ -775,23 +775,25 @@ pub struct SetupConfig {
 
 #[tauri::command]
 pub async fn create_initial_config(config: SetupConfig) -> Result<(), String> {
-    // Create initial hosts.json
-    let hosts_file = std::path::Path::new(&config.config_path)
-        .join("conf")
-        .join("hosts.json");
+    // Ensure the conf/ directory exists.
+    let conf_dir = std::path::Path::new(&config.config_path).join("conf");
+    fs::create_dir_all(&conf_dir)
+        .map_err(|e| format!("Failed to create conf directory: {}", e))?;
 
-    let initial_hosts = serde_json::json!({});
+    // Create the initial hosts.json ONLY if it does not already exist, so that
+    // re-running the setup wizard is idempotent and never overwrites an
+    // existing host configuration.
+    let hosts_file = conf_dir.join("hosts.json");
+    if !hosts_file.exists() {
+        let initial_hosts = serde_json::json!({});
+        let json_content = serde_json::to_string_pretty(&initial_hosts)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        fs::write(&hosts_file, json_content)
+            .map_err(|e| format!("Failed to write hosts file: {}", e))?;
+    }
 
-    let json_content = serde_json::to_string_pretty(&initial_hosts)
-        .map_err(|e| format!("Failed to serialize config: {}", e))?;
-
-    fs::write(&hosts_file, json_content)
-        .map_err(|e| format!("Failed to write hosts file: {}", e))?;
-
-    // Create settings.json
-    let settings_file = std::path::Path::new(&config.config_path)
-        .join("conf")
-        .join("settings.json");
+    // settings.json only stores setup metadata, so it is safe to (over)write.
+    let settings_file = conf_dir.join("settings.json");
 
     let settings = serde_json::json!({
         "stack": config.stack,
