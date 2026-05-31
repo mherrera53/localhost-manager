@@ -819,14 +819,14 @@ async function toggleHostActive(domain: string, active: boolean) {
     try {
       showToast('Updating configuration...', 'warning');
 
-      // macOS/Linux: elevate once via osascript (Touch ID). Windows (BETA):
-      // elevate via UAC and run the PowerShell hosts update.
+      // macOS/Linux: elevate once via sudo (Touch ID through pam_tid). Windows
+      // (BETA): elevate via UAC and run the PowerShell hosts update.
       const applyCmd = IS_WINDOWS
         ? Command.create('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
             `Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${SCRIPTS_PATH}\\windows\\update-hosts.ps1'`
           ])
         : Command.create('sh', ['-c',
-            `osascript -e 'do shell script "bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh" with administrator privileges'`
+            `sudo bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh`
           ]);
       await applyCmd.execute();
       
@@ -1159,15 +1159,15 @@ export async function generateConfigs() {
   try {
     showToast('Applying configuration (Touch ID)…', 'warning');
 
-    // Centralized elevation: one privileged run (Touch ID on macOS) that
-    // regenerates certs + vhosts AND applies /etc/hosts + Apache -- exactly the
-    // same path used when toggling a host, so there is a single prompt.
+    // Centralized elevation: one privileged run (Touch ID via sudo/pam_tid on
+    // macOS) that regenerates certs + vhosts AND applies /etc/hosts + Apache --
+    // exactly the same path used when toggling a host, so there is a single prompt.
     const command = IS_WINDOWS
       ? Command.create('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
           `Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${SCRIPTS_PATH}\\windows\\update-hosts.ps1'`
         ])
       : Command.create('sh', ['-c',
-          `osascript -e 'do shell script "bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh" with administrator privileges'`
+          `sudo bash ${SCRIPTS_PATH}/apply-all-with-sudo.sh`
         ]);
     const output = await command.execute();
 

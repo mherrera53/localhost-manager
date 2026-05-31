@@ -63,14 +63,14 @@ fn map_language_code(code: &str) -> String {
 }
 
 /// Execute a command with administrator/root privileges
-/// On macOS: Uses AppleScript to show native password dialog
+/// On macOS: Uses sudo, which triggers Touch ID via pam_tid when configured
 /// On Windows: Uses UAC elevation
 /// On Linux: Uses pkexec or similar
 #[tauri::command]
 pub async fn execute_with_privileges(command: String, args: Vec<String>) -> Result<String, String> {
     #[cfg(target_os = "macos")]
     {
-        execute_with_applescript_sudo(command, args).await
+        execute_with_sudo(command, args).await
     }
 
     #[cfg(target_os = "windows")]
@@ -85,21 +85,12 @@ pub async fn execute_with_privileges(command: String, args: Vec<String>) -> Resu
 }
 
 #[cfg(target_os = "macos")]
-async fn execute_with_applescript_sudo(
-    command: String,
-    args: Vec<String>,
-) -> Result<String, String> {
-    // Build the full command
-    let full_command = format!("{} {}", command, args.join(" "));
-
-    // Use AppleScript to request admin privileges
-    let script = format!(
-        r#"do shell script "{}" with administrator privileges"#,
-        full_command.replace("\"", "\\\"")
-    );
-
-    let output = std::process::Command::new("osascript")
-        .args(["-e", &script])
+async fn execute_with_sudo(command: String, args: Vec<String>) -> Result<String, String> {
+    // Elevate via sudo. When /etc/pam.d/sudo enables pam_tid.so, this prompts
+    // for Touch ID instead of a typed password. No password is stored or piped.
+    let output = std::process::Command::new("sudo")
+        .arg(&command)
+        .args(&args)
         .output()
         .map_err(|e| format!("Failed to execute: {}", e))?;
 

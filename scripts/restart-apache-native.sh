@@ -3,11 +3,11 @@
 export PATH="/usr/sbin:/usr/bin:/bin:/sbin:$PATH"
 
 # Restart macOS native Apache.
-# Elevation is requested via osascript (Touch ID / GUI prompt) -- we never
-# store or pipe a sudo password.
+# Elevation via sudo, which uses pam_tid.so (Touch ID) -- we never store or
+# pipe a password.
 
 echo "Restarting native macOS Apache..."
-if osascript -e 'do shell script "/usr/sbin/apachectl restart" with administrator privileges' 2>&1; then
+if sudo /usr/sbin/apachectl restart 2>&1; then
     echo "[OK] Apache restarted"
 else
     echo "[X] Could not restart Apache"
