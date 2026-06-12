@@ -192,6 +192,28 @@ pub async fn get_virtual_hosts() -> Result<HashMap<String, VirtualHost>, String>
                 }
             }
 
+            // Proxy a dev server (stack="backend" + port) y CUALQUIER otro
+            // campo no reconocido se preservan: antes este parser los
+            // descartaba y cada guardado de la UI los borraba de hosts.json.
+            let stack = host_obj
+                .get("stack")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let port = host_obj
+                .get("port")
+                .and_then(|v| v.as_u64())
+                .map(|p| p as u16);
+
+            const KNOWN_KEYS: [&str; 9] = [
+                "domain", "docroot", "aliases", "group", "active", "ssl", "type", "stack", "port",
+            ];
+            let mut extra = serde_json::Map::new();
+            for (k, v) in host_obj.iter() {
+                if !KNOWN_KEYS.contains(&k.as_str()) {
+                    extra.insert(k.clone(), v.clone());
+                }
+            }
+
             let host = VirtualHost {
                 domain: domain.clone(),
                 docroot,
@@ -200,6 +222,9 @@ pub async fn get_virtual_hosts() -> Result<HashMap<String, VirtualHost>, String>
                 active,
                 ssl,
                 host_type,
+                stack,
+                port,
+                extra,
             };
 
             hosts.insert(domain, host);

@@ -49,14 +49,17 @@ export interface VirtualHost {
   active: boolean;
   ssl: boolean;
   type: string;
-  stack?: string;
+  /** Proxy a dev server (Vite/Node): ProxyPass cuando stack="backend" y port existe */
+  stack?: string | null;
+  port?: number | null;
   php_version?: string;
-  port?: number;
   autostart?: boolean;
   database?: string;
   mode?: string;
   dev_command?: string;
   dev_port?: number;
+  /** Campos extra de hosts.json preservados por el backend (serde flatten) */
+  [key: string]: unknown;
 }
 
 export interface ServicesStatus {

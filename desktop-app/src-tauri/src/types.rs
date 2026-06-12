@@ -64,6 +64,16 @@ pub struct VirtualHost {
     pub ssl: bool,
     #[serde(rename = "type")]
     pub host_type: String,
+    /// Proxy a dev server (Vite/Node): el generador de vhosts hace ProxyPass
+    /// cuando stack="backend" y port está definido.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stack: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+    /// Cualquier otro campo presente en hosts.json se preserva tal cual:
+    /// antes serde los descartaba y cada guardado de la UI los borraba.
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
